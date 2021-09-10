@@ -1,6 +1,6 @@
 # Run3BparkingHLTStudies
 
-Unless you want to generate analysis ROOT files by yourself, you can skip Step1 and 2. 
+Unless you want to generate analysis ROOT files by yourself, you don't need to follow following steps ... 
 
 1. Setting up your environemnt https://twiki.cern.ch/twiki/bin/viewauth/CMS/EGMHLTRun3RecommendationForPAG
 
