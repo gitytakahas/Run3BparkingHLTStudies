@@ -1,6 +1,8 @@
 # Run3BparkingHLTStudies
 
-# 1. setup ROOT 
+Before going through below, you should first setup ROOT env. 
+
+# 1. Setup
 
 ```
 git clone git@github.com:gitytakahas/Run3BparkingHLTStudies.git
