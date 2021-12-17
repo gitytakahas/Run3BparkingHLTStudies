@@ -30,10 +30,11 @@ mkdir -p /scratch/$USER/${SLURM_JOB_ID}
 export TMPDIR=/scratch/$USER/${SLURM_JOB_ID}
 
 
-#python3 /work/ytakahas/work/HLT/CMSSW_12_0_0_pre4/src/Analysis/HLTAnalyserPy/test/makeRun3Ntup.py INPUT -o $TMPDIR/FINALOUTPUT
-python3 /work/ytakahas/work/HLT/CMSSW_12_0_0_pre4/src/RTYPE.py INPUT --out $TMPDIR/FINALOUTPUT
+#cmsRun RTYPE.py INPUT maxEvents=-1 outputFile=$TMPDIR/TMPOUTPUT
+python3 /work/ytakahas/work/HLT/CMSSW_12_0_0_pre4/src/Analysis/HLTAnalyserPy/test/makeRun3Ntup.py INPUT -o $TMPDIR/FINALOUTPUT
 
 
+#xrdcp -f $TMPDIR/TMPOUTPUT root://t3dcachedb03.psi.ch/EDMOUTFILE
 xrdcp -f $TMPDIR/FINALOUTPUT root://t3dcachedb03.psi.ch/OUTFILE
 
 

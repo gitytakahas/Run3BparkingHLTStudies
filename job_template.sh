@@ -2,7 +2,7 @@
 # 
 #SBATCH -p standard
 #SBATCH --account=t3
-#SBATCH --time 02:59:00
+#SBATCH --time 11:59:00
 #SBATCH -e cn-test.err  # replace default slurm-SLURM_JOB_ID.err
 #SBATCH -o cn-test.out  # replace default slurm-SLURM_JOB_ID.out
 
@@ -34,7 +34,7 @@ cmsRun RTYPE.py INPUT maxEvents=-1 outputFile=$TMPDIR/TMPOUTPUT
 python3 /work/ytakahas/work/HLT/CMSSW_12_0_0_pre4/src/Analysis/HLTAnalyserPy/test/makeRun3Ntup.py $TMPDIR/TMPOUTPUT -o $TMPDIR/FINALOUTPUT
 
 
-xrdcp -f $TMPDIR/TMPOUTPUT root://t3dcachedb03.psi.ch/EDMOUTFILE
+#xrdcp -f $TMPDIR/TMPOUTPUT root://t3dcachedb03.psi.ch/EDMOUTFILE
 xrdcp -f $TMPDIR/FINALOUTPUT root://t3dcachedb03.psi.ch/OUTFILE
 
 

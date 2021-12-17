@@ -63,6 +63,9 @@ class TreeProducerBcJpsiTauNu_eff(TreeProducerCommon):
         self.addBranch('l1_mee',                  'f')
         self.addBranch('hlt_mee',                  'f')
 
+        self.addBranch('gen_mass',                  'f')
+        self.addBranch('gen_dr',                  'f')
+
         self.addBranch('isgjson', '?')
         self.addBranch('instL', 'f')
         self.addBranch('npu', 'i')

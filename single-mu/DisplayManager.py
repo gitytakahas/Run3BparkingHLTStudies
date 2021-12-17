@@ -7,7 +7,7 @@ def applyLegendSettings(leg):
     leg.SetFillColor(10)
     leg.SetLineColor(0)
     leg.SetFillStyle(0)
-    leg.SetTextSize(0.035)
+    leg.SetTextSize(0.05)
 #    leg.SetTextFont(42)
 
 

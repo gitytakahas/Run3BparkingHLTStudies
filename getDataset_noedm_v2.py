@@ -55,8 +55,8 @@ parser.add_option("-t", "--type", default="mc", type="string", help="type", dest
 import glob
 
 #listoffiles = glob.glob(options.filelist + '/EDM*.root')
-listoffiles = glob.glob(options.filelist + '/Myroot*.root')
-#listoffiles = glob.glob(options.filelist + '/EphemeralZeroBias*/winter21/*/0000/*.root')
+#listoffiles = glob.glob(options.filelist + '/Myroot*.root')
+listoffiles = glob.glob(options.filelist + '/EphemeralZeroBias*/winter21/*/0000/*.root')
 
 #for ii in listoffiles:
 #    print ii
@@ -97,7 +97,7 @@ listoffiles = tmplistoffiles
 
 print cnt, 'files deleted -->', len(listoffiles), 'files will be analyzed'
 #sys.exit(1)
-print 'tmp files =', len(tmplistoffiles)
+#print 'tmp files =', len(tmplistoffiles)
 
 
 
@@ -134,7 +134,7 @@ for ijob, filename in enumerate(listoffiles):
     outfile = outdir + '/Myroot_' + str(ijob) + '_' + options.type + '.root'
 #    edmoutfile = outdir + '/EDM_' + str(ijob) + '.root'
 
-    os.system("cp job_template_noedm.sh " + jobscript)
+    os.system("cp job_template_noedm_v2.sh " + jobscript)
     
     with open(jobscript) as f:
         data_lines = f.read()

@@ -15,9 +15,10 @@ num_dtype = {
 }
 
 
-ptrange = num.arange(5, 15, 1).tolist() 
-l1_ptrange = num.arange(5, 12.5, 0.5).tolist() 
-hlt_ptrange = num.arange(4, 12.5, 0.5).tolist() 
+#ptrange = num.arange(5, 15, 1).tolist() 
+l1_ptrange = num.arange(4, 12, 0.5).tolist() 
+hlt_ptrange = num.arange(4, 12, 0.5).tolist() 
+#drrange = num.arange(0.3, 1.1, 0.1).tolist() 
 
 class TreeProducerCommon(object):
     """Class to create a custom output file & tree; as well as create and contain branches."""

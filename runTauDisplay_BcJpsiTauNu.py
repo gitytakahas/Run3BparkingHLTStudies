@@ -8,6 +8,7 @@ import copy
 import random
 import numpy as np
 import itertools
+import argparse
 
 def hlt_criteria(chain, idx, pt):
     
@@ -41,40 +42,72 @@ from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 
-parser.add_option("-o", "--out", default='out_mc_gabagaba.root', type="string", help="output filename", dest="out")
-#parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/mc_widedPhiMaxLowEtGrad/Myroot.root', type="string", help="file", dest="file")
-parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/mc_gabagaba/Myroot.root', type="string", help="file", dest="file")
 
-(options, args) = parser.parse_args()
+parser = argparse.ArgumentParser(description='example e/gamma HLT analyser')
+parser.add_argument('in_filenames',nargs="+",help='input filename')
+parser.add_argument('--out','-o',default="efftest.root",help='output filename')
+parser.add_argument('--type','-t',default="mc",help='output filename')
+args = parser.parse_args()
 
-print(options)
+
+print('filename=', args.in_filenames)
 
 
-out = TreeProducerBcJpsiTauNu(options.out)
+out = TreeProducerBcJpsiTauNu(args.out)
 
 chain = ROOT.TChain('egHLTRun3Tree', 'tree')
-chain.AddFile(options.file)
+
+for _file in args.in_filenames:
+    chain.AddFile(_file)
 
 Nevt = chain.GetEntries()
+
 
 print('Total Number of events = ', Nevt)
 evtid = 0
 #evtid_7 = 0
 
 drdict = {
-    3:1,
-    4:1,
-    5:0.9,
-    6:0.8,
-    7:0.75,
-    8:0.7,
-    9:0.65,
-    10:0.6,
-    11:0.55,
-    12:0.5,
-    13:0.45,
-    14:0.4,
+    3.0:1.0,
+    3.5:1.0,
+    4.0:1.0,
+    4.5:0.9,
+    5.0:0.9,
+    5.5:0.8,
+    6.0:0.8,
+    6.5:0.8,
+    7.0:0.8,
+    7.5:0.7,
+    8.0:0.7,
+    8.5:0.7,
+    9.0:0.7,
+    9.5:0.6,
+    10.0:0.6,
+    10.5:0.6,
+    11.0:0.6,
+    11.5:0.5,
+    12.0:0.5,
+    12.5:0.5,
+    13.0:0.5,
+    13.5:0.4,
+    14.0:0.4,
 }   
+
+
+#drdict = {
+#    3:1,
+#    4:1,
+#    5:0.9,
+#    6:0.8,
+#    7:0.75,
+#    8:0.7,
+#    9:0.65,
+#    10:0.6,
+#    11:0.55,
+#    12:0.5,
+#    13:0.45,
+#    14:0.4,
+#}   
 
 
 for evt in range(Nevt):
@@ -133,7 +166,7 @@ for evt in range(Nevt):
         for jj in range(len(chain.eg_l1eg_et)):
 
 
-            if abs(chain.eg_l1eg_eta[jj]) > 1.2: continue
+            if abs(chain.eg_l1eg_eta[jj]) > 1.218: continue
 
             dr = deltaR(chain.eg_gen_eta[ii], chain.eg_gen_phi[ii],
                         chain.eg_l1eg_eta[jj], chain.eg_l1eg_phi[jj])
@@ -180,7 +213,7 @@ for evt in range(Nevt):
             dr = deltaR(chain.eg_gen_eta[ii], chain.eg_gen_phi[ii],
                         chain.eg_eta[jj], chain.eg_phi[jj]) 
 
-            if abs(chain.eg_eta[jj]) > 1.2: continue
+            if abs(chain.eg_eta[jj]) > 1.218: continue
             
             if maxhlt_dr > dr:
                 

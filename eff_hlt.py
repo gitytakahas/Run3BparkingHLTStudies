@@ -9,6 +9,7 @@ import random
 import numpy as np
 import itertools
 from ROOT import TLorentzVector
+import argparse
 
 def hlt_criteria(chain, idx):
     
@@ -37,58 +38,78 @@ def ensureDir(directory):
 
 me = 0.000511
 
-
 from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 
-parser.add_option("-o", "--out", default='efftest.root', type="string", help="output filename", dest="out")
-#parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/mc_widedPhiMaxLowEtGrad/Myroot.root', type="string", help="file", dest="file")
-parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/mc_4gev_22/Myroot.root', type="string", help="file", dest="file")
 
-(options, args) = parser.parse_args()
-
-print(options)
-
-
-name = options.out
+parser = argparse.ArgumentParser(description='example e/gamma HLT analyser')
+parser.add_argument('in_filenames',nargs="+",help='input filename')
+parser.add_argument('--out','-o',default="efftest.root",help='output filename')
+parser.add_argument('--type','-t',default="mc",help='output filename')
+args = parser.parse_args()
 
 
-out = TreeProducerBcJpsiTauNu_eff(options.out)
+#parser.add_option("-o", "--out", default='ratetest.root', type="string", help="output filename", dest="out")
+
+#parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/data_4gev_22/Myroot_simple.root', type="string", help="file", dest="file")
+#parser.add_option("-f", "--file", default='test.root', type="string", help="file", dest="file")
+
+
+print('filename=', args.in_filenames)
+
+
+#(options, args) = parser.parse_args()
+
+#print(options)
+
+
+out = TreeProducerBcJpsiTauNu_eff(args.out)
 
 chain = ROOT.TChain('egHLTRun3Tree', 'tree')
-chain.AddFile(options.file)
+#chain.AddFile(options.file)
+
+for _file in args.in_filenames:
+    chain.AddFile(_file)
 
 Nevt = chain.GetEntries()
 
+
+
+
+#from optparse import OptionParser, OptionValueError
+#usage = "usage: python runTauDisplay_BsTauTau.py"
+#parser = OptionParser(usage)
+#
+#parser.add_option("-o", "--out", default='efftest.root', type="string", help="output filename", dest="out")
+#parser.add_argument('in_filenames',nargs="+",help='input filename')
+##parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/mc_widedPhiMaxLowEtGrad/Myroot.root', type="string", help="file", dest="file")
+##parser.add_option("-f", "--file", default='/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/Winter21_official_mc/Myroot.root', type="string", help="file", dest="file")
+#
+#(options, args) = parser.parse_args()
+#
+#print(options)
+#
+#
+#name = options.out
+#
+#
+#out = TreeProducerBcJpsiTauNu_eff(options.out)
+#
+#chain = ROOT.TChain('egHLTRun3Tree', 'tree')
+#chain.AddFile(options.file)
+#
+#Nevt = chain.GetEntries()
+
 print('Total Number of events = ', Nevt)
 evtid = 0
-
-drdict = {
-    3:1,
-    4:1,
-    5:0.9,
-    6:0.8,
-    7:0.75,
-    8:0.7,
-    9:0.65,
-    10:0.6,
-    11:0.55,
-    12:0.5,
-    13:0.45,
-    14:0.4,
-}   
 
 
 for evt in range(Nevt):
     chain.GetEntry(evt)
 
     if evt%10000==0: print('{0:.2f}'.format(float(evt)/float(Nevt)*100.), '% processed')
-   
 
-#    print(len(chain.eg_gen_pt))
-
-#    print(chain.eg_gen_pt[0], chain.eg_gen_pt[1])
     
     if(len(chain.eg_gen_pt)!=2): 
         print('# of gen =', len(chain.eg_gen_pt), 'detected!!! continue ...')
@@ -103,6 +124,8 @@ for evt in range(Nevt):
         idx1 = 1
         idx2 = 0
 
+    epairs = []
+
 
     # check over L1 objects and see if it matches ... 
 
@@ -115,6 +138,12 @@ for evt in range(Nevt):
         getattr(out, 'gen_e' + str(gindex+1) + '_eta')[0] = chain.eg_gen_eta[idx]
         getattr(out, 'gen_e' + str(gindex+1) + '_phi')[0] = chain.eg_gen_phi[idx]
 
+
+        tlv = TLorentzVector()
+        tlv.SetPtEtaPhiM(chain.eg_gen_pt[idx], chain.eg_gen_eta[idx], chain.eg_gen_phi[idx], me)
+        epairs.append(copy.deepcopy(tlv))
+        
+
         l1index = -1
         maxl1_dr = 99
         maxl1_deta = 99
@@ -122,18 +151,16 @@ for evt in range(Nevt):
 
         for jj in range(len(chain.eg_l1eg_et)):
 
-            if abs(chain.eg_l1eg_eta[jj]) > 1.2: continue
+            if abs(chain.eg_l1eg_eta[jj]) > 1.218: continue
 
             dr = deltaR(chain.eg_gen_eta[idx], chain.eg_gen_phi[idx],
                         chain.eg_l1eg_eta[jj], chain.eg_l1eg_phi[jj])
 
             if maxl1_dr > dr and jj!=match_index_l1:
-#            if maxl1_dr > dr:
 
                 maxl1_dr = dr
                 maxl1_dphi = deltaPhi(chain.eg_gen_phi[idx], chain.eg_l1eg_phi[jj])
                 maxl1_deta = chain.eg_gen_eta[idx] - chain.eg_l1eg_eta[jj]
-
 
                 l1index = jj
 
@@ -261,8 +288,8 @@ for evt in range(Nevt):
         getattr(out, 'l1_mee')[0] = (tlv1 + tlv2).M()
 
     else:
-        getattr(out, 'l1_eedr')[0] = 99
-        getattr(out, 'l1_mee')[0] = 99
+        getattr(out, 'l1_eedr')[0] = -1
+        getattr(out, 'l1_mee')[0] = -1
 
 
     if getattr(out, 'gen_e1_hlt_dr')[0]!=99 and getattr(out, 'gen_e2_hlt_dr')[0]!=99:
@@ -281,9 +308,11 @@ for evt in range(Nevt):
         getattr(out, 'hlt_mee')[0] = (tlv1+tlv2).M()
 
     else:
-        getattr(out, 'hlt_eedr')[0] = 99
-        getattr(out, 'hlt_mee')[0] = 99
+        getattr(out, 'hlt_eedr')[0] = -1
+        getattr(out, 'hlt_mee')[0] = -1
         
+    out.gen_mass[0] = (epairs[0] + epairs[1]).M()
+    out.gen_dr[0] = epairs[0].DeltaR(epairs[1])
         
         
         

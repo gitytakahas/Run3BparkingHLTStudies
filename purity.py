@@ -3249,15 +3249,6 @@ process.HLTriggerFinalPath = cms.Path( process.hltGtStage2Digis + process.hltSca
 process.HLTSchedule = cms.Schedule( *(process.HLTriggerFirstPath, process.HLT_Ele32_WPTight_Gsf_v15, process.HLTriggerFinalPath ))
 
 
-process.source = cms.Source( "PoolSource",
-    fileNames = cms.untracked.vstring(
-        '/store/data/Run2018D/EphemeralZeroBias8/MINIAOD/PromptReco-v2/000/320/497/00000/C8FEA71E-6695-E811-8D4D-02163E015309.root'
-    ),
-
-    inputCommands = cms.untracked.vstring(
-        'keep *'
-    )
-)
 
 # avoid PrescaleService error due to missing HLT paths
 if 'PrescaleService' in process.__dict__:
@@ -3267,7 +3258,7 @@ if 'PrescaleService' in process.__dict__:
 
 # limit the number of events to be processed
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32( 20 )
+    input = cms.untracked.int32( -1 )
 )
 
 # enable TrigReport, TimeReport and MultiThreading
@@ -3300,6 +3291,9 @@ process.dqmOutput = cms.OutputModule("DQMRootOutputModule",
 process.DQMOutput = cms.EndPath( process.dqmOutput )
 
 # add specific customizations
+
+process.source = cms.Source( "PoolSource")
+
 _customInfo = {}
 _customInfo['menuType'  ]= "GRun"
 _customInfo['globalTags']= {}
@@ -3329,4 +3323,70 @@ from HLTrigger.Configuration.customizeHLTforEGamma import customiseEGammaMenuDev
 process = customiseEGammaMenuDev(process)
 
 process.egOutMod.fileName = cms.untracked.string(options.outputFile)
+
+process.egOutMod.outputCommands.append('keep *_slimmedElectrons_*_*') 
+
+process.source.fileNames = cms.untracked.vstring(       
+# This is ok!
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/BAC58767-E593-E811-BD20-FA163EC5D27D.root'
+
+#    '/store/data/Run2018D/EphemeralZeroBias8/MINIAOD/PromptReco-v2/000/320/500/00000/042EC2A9-F595-E811-8000-FA163E93F5A3.root'
+'/store/data/Run2018D/EphemeralZeroBias8/MINIAOD/PromptReco-v2/000/320/500/00000/0ED01D6C-FE95-E811-8FA9-FA163E536B65.root'
+#        '/store/data/Run2018D/EphemeralZeroBias8/MINIAOD/PromptReco-v2/000/320/497/00000/C8FEA71E-6695-E811-8D4D-02163E015309.root'
+)
+
+process.source.secondaryFileNames=cms.untracked.vstring(
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/F87CC759-D793-E811-8606-FA163E91624B.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/0AD1DC91-D893-E811-B09E-FA163EF17A8E.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/BAC58767-E593-E811-BD20-FA163EC5D27D.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/8E82948A-D993-E811-9029-FA163ED2983B.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/DAA1583F-D793-E811-8BD2-FA163EA4DD67.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/BA68D7D6-DD93-E811-B0E8-FA163E4D3DAC.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/DAD7B4AF-D993-E811-AE0C-02163E00CD90.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/B63A4B96-E193-E811-BFA7-FA163EFD28DB.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/1A998A1B-DD93-E811-8B34-FA163EBBF819.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/02FE5D95-D993-E811-A437-02163E016161.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/865908EB-E593-E811-B188-02163E012CFA.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/824022BF-D893-E811-BF28-FA163ED3127A.root',
+#    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/6613D742-E993-E811-AA29-02163E013066.root'
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/90D00266-E593-E811-B22C-FA163E2C0EB5.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/72AD64FF-DA93-E811-9EFB-02163E01767C.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/A2E01D6A-E593-E811-A44D-02163E015C09.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/D05057CD-E693-E811-83F4-FA163EB656C6.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/8AE52E67-E593-E811-B025-FA163EEE65D6.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/B65DBEDC-E693-E811-B63B-FA163EE96112.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/54A80CB1-E093-E811-BBEB-FA163E07DD78.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/66C6AD51-E293-E811-826D-FA163ED85F64.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/1485D3A0-D893-E811-93F9-FA163E9666C9.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/9A94309A-E793-E811-8A35-02163E00ACDD.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/46AC0CB1-E093-E811-BA3D-FA163E07DD78.root',
+    '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/500/00000/16A189D2-E693-E811-8769-FA163EB1CCFA.root'
+)
+
+process.source.inputCommands = cms.untracked.vstring(
+    'keep *'
+)
+
+
+#process.source = cms.Source( "PoolSource",
+#    fileNames = cms.untracked.vstring(       
+#        '/store/data/Run2018D/EphemeralZeroBias8/MINIAOD/PromptReco-v2/000/320/497/00000/C8FEA71E-6695-E811-8D4D-02163E015309.root'
+#    ),
+#
+#    secondaryFileNames=cms.untracked.vstring(
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/04E0297E-C893-E811-B0AA-FA163EADBE2E.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/0E8ECE80-C893-E811-8745-FA163EADFE85.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/24F83A7B-C893-E811-9B05-FA163EEECA4B.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/7498FCE5-C993-E811-9334-FA163EE0A861.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/92AF2DF3-C993-E811-B2F3-FA163E1972DF.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/92D52E78-C893-E811-9941-FA163EF326A4.root',
+#        '/store/data/Run2018D/EphemeralZeroBias8/RAW/v1/000/320/497/00000/9A87F260-CB93-E811-875D-FA163EA379FB.root',
+#        '/store/data/Run2018D/EphemeralZeroBias1/RAW/v1/000/320/497/00000/00C024D9-C893-E811-BE8B-FA163E085754.root',
+#    ),
+#
+#    inputCommands = cms.untracked.vstring(
+#        'keep *'
+#    )
+#)
+
 process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')

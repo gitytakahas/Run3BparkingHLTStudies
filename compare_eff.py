@@ -16,11 +16,38 @@ gStyle.SetTitleOffset(1.0,"X")
 gStyle.SetTitleOffset(1.0,"Y")
 
 
-l1_ptrange = np.arange(5, 12.5, 0.5).tolist() 
-hlt_ptrange = np.arange(4, 12.5, 0.5).tolist() 
+l1_ptrange = np.arange(5, 12, 0.5).tolist() 
+hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
 
 colours = [1, 2, 4, 6, 8, 13, 15]
 styles = [1, 2, 4, 3, 5, 1, 1]
+
+drdict = {
+    3.0:1.0,
+    3.5:1.0,
+    4.0:1.0,
+    4.5:0.9,
+    5.0:0.9,
+    5.5:0.8,
+    6.0:0.8,
+    6.5:0.8,
+    7.0:0.8,
+    7.5:0.7,
+    8.0:0.7,
+    8.5:0.7,
+    9.0:0.7,
+    9.5:0.6,
+    10.0:0.6,
+    10.5:0.6,
+    11.0:0.6,
+    11.5:0.5,
+    12.0:0.5,
+    12.5:0.5,
+    13.0:0.5,
+    13.5:0.4,
+    14.0:0.4,
+}   
+
 
 
 def overflow(hist):
@@ -178,9 +205,9 @@ vardict = {
 ensureDir('plots_compare/')
 
 
+set_palette()
 
-
-file = TFile('efftest.root')
+file = TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_mc_Eff/Myroot.root')
 tree = file.Get('tree')
 
 
@@ -193,6 +220,8 @@ h_e1e2 = TH2F('e1e2' , 'e1e2', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrang
 h_all = TH2F('all' , 'all', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
 
 h_gall = TH2F('gall' , 'gall', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+
+h_gall_mass = TH2F('gall_mass' , 'gall_mass', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
 
 
 h_e1.GetXaxis().SetTitle('L1 di-electron X GeV')
@@ -209,6 +238,9 @@ h_all.GetYaxis().SetTitle('HLT di-electron Y GeV')
 
 h_gall.GetYaxis().SetTitle('HLT di-electron X GeV')
 h_gall.GetYaxis().SetTitle('HLT di-electron Y GeV')
+
+h_gall_mass.GetYaxis().SetTitle('HLT di-electron X GeV')
+h_gall_mass.GetYaxis().SetTitle('HLT di-electron Y GeV')
 
 
 def calcEff(tree, denstr, numstr):
@@ -228,22 +260,27 @@ if True:
         for ihlt, hlt_pt in enumerate(hlt_ptrange):
         
             sel_inclusive = '1'
-            sel_den = 'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt > ' + str(l1_pt) + ' && e2_l1_pt > ' + str(l1_pt)
+            sel_den = 'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= ' + str(l1_pt) + ' && e2_l1_pt >= ' + str(l1_pt) 
+            sel_dr = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_eedr < ' + str(drdict[hlt_pt])
+            sel_dr_mass = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_mee < 6'
             
-            match_e1 = 'gen_e1_hlt_dr < 0.2 && e1_hlt_pt > ' + str(hlt_pt)
-            match_e2 = 'gen_e2_hlt_dr < 0.2 && e2_hlt_pt > ' + str(hlt_pt)
+            match_e1 = 'gen_e1_hlt_dr < 0.2 && e1_hlt_pt >= ' + str(hlt_pt)
+            match_e2 = 'gen_e2_hlt_dr < 0.2 && e2_hlt_pt >= ' + str(hlt_pt)
 
             sel_e1 = '&&'.join([sel_den, match_e1])
             sel_e2 = '&&'.join([sel_den, match_e2])
             
             sel_e1e2 = '&&'.join([sel_den, match_e1, match_e2])
-            sel_all = '&&'.join([sel_den, match_e1, match_e2, qcut, qcut.replace('e1', 'e2')])
+            sel_all = '&&'.join([sel_den, match_e1, match_e2, sel_dr, qcut, qcut.replace('e1', 'e2')])
+
+            sel_all_mass = '&&'.join([sel_den, match_e1, match_e2, sel_dr_mass, qcut, qcut.replace('e1', 'e2')])
 
             h_e1.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1))
             h_e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e2))
             h_e1e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1e2))
-            h_all.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_all))
+            h_all.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_all_mass))
             h_gall.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all))
+            h_gall_mass.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
 
 
     ofile = TFile('effmap.root', 'recreate')
@@ -252,6 +289,7 @@ if True:
     h_e1e2.Write()
     h_all.Write()
     h_gall.Write()
+    h_gall_mass.Write()
 
     ofile.Write()
     ofile.Close()
@@ -259,9 +297,9 @@ if True:
         
     
 
-filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt > 6 && e2_l1_pt > 6 && gen_e1_hlt_dr < 0.2'},
-            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt > 6 && e2_l1_pt > 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
-            'data': {'file':TFile('out_data_4gev_22.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
+filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
+            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
+            'data': {'file':TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_data_dist/Myroot.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
 
 
 if False:

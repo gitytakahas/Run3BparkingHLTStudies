@@ -161,6 +161,15 @@ for line in open(options.filelist):
 
     listoffiles.append(line)
 
+
+#import glob
+
+#listoffiles = glob.glob(options.filelist + '/EDM*.root')
+#listoffiles = glob.glob(options.filelist + '/EphemeralZeroBias*/winter21/*/0000/*.root')
+
+
+
+
 #print listoffiles
 
 print len(listoffiles), 'files detected'
@@ -191,10 +200,10 @@ ensureDir(jobdir)
 
 for ijob, filename in enumerate(listoffiles):
 
-    if options.type=='data':
-        if ijob in test: continue
+#    if options.type=='data':
+#        if ijob in test: continue
 
-#    if ijob > 1000: break
+    if ijob > 2: break
 
     
     jobscript = jobdir + '/job_' + str(ijob) + '.sh'
@@ -218,5 +227,5 @@ for ijob, filename in enumerate(listoffiles):
         f.write(data_lines)
 
 #    command = 'sbatch -p short --account=t3 --error=' + jobdir + '/err.' + str(ijob) + ' --output=' + jobdir + '/out.' + str(ijob) + ' ' + jobscript
-    command = 'sbatch -p standard --account=t3 --error=' + jobdir + '/err.' + str(ijob) + ' --output=' + jobdir + '/out.' + str(ijob) + ' ' + jobscript
-    os.system(command)
+    command = 'sbatch -p standard --mem=5000 --account=t3 --error=' + jobdir + '/err.' + str(ijob) + ' --output=' + jobdir + '/out.' + str(ijob) + ' ' + jobscript
+#    os.system(command)
