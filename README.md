@@ -23,7 +23,7 @@ This will create effmap.root to be later used to make the ROC curve
 # 3. (re-) create ROC curve 
 
 ```
-python draw_roc.py --pu 
+python draw_roc.py --pu 25 (e.g. you can change the number here)
 ```
 
 The representative points are 
