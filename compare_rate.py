@@ -146,8 +146,7 @@ ensureDir('plots_rate/')
 set_palette()
 
 
-file = TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_data_rate_all/Myroot.root')
-#file = TFile('ratetest.root')
+file = TFile('root/rate_data.root')
 tree = file.Get('tree')
 
 
@@ -366,7 +365,7 @@ for il1, l1_pt in enumerate(l1_ptrange):
 
 
 
-ofile = TFile('ratemap.root', 'recreate')
+ofile = TFile('root/ratemap.root', 'recreate')
 h_rate.Write()
 h_rate_mass.Write()
 

@@ -16,8 +16,11 @@ gStyle.SetTitleOffset(1.0,"X")
 gStyle.SetTitleOffset(1.0,"Y")
 
 
-l1_ptrange = np.arange(5, 12, 0.5).tolist() 
-hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
+#l1_ptrange = np.arange(5, 12, 0.5).tolist() 
+#hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
+
+l1_ptrange = np.arange(5, 5.6, 0.5).tolist() 
+hlt_ptrange = np.arange(4, 4.6, 0.5).tolist() 
 
 colours = [1, 2, 4, 6, 8, 13, 15]
 styles = [1, 2, 4, 3, 5, 1, 1]
@@ -202,12 +205,11 @@ vardict = {
 
     }
 
-ensureDir('plots_compare/')
 
 
 set_palette()
 
-file = TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_mc_Eff/Myroot.root')
+file = TFile('root/geneff.root')
 tree = file.Get('tree')
 
 
@@ -283,7 +285,7 @@ if True:
             h_gall_mass.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
 
 
-    ofile = TFile('effmap.root', 'recreate')
+    ofile = TFile('root/effmap.root', 'recreate')
     h_e1.Write()
     h_e2.Write()
     h_e1e2.Write()
@@ -297,40 +299,42 @@ if True:
         
     
 
-filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
-            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
-            'data': {'file':TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_data_dist/Myroot.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
-
-
-if False:
-    for vkey, ivar in vardict.items():
-
-        print(vkey)
-
-        hists = []
-        titles = []
-
-        for stype in ['data', 'sig_e1', 'sig_e2']:
-        
-
-            ivar_new = copy.deepcopy(ivar)
-            if stype.find('sig')!=-1:
-                ivar_new['var'] = ivar_new['var'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
-                ivar_new['sel'] = ivar_new['sel'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
-            
-            print(vkey, stype, ivar_new['var'], ivar_new['sel'])
-
-            hist = sproducer(stype, filedict[stype]['file'], vkey, ivar_new, filedict[stype]['sel'])
-    
-            hists.append(copy.deepcopy(hist))
-            titles.append(stype)
-
-
-        for ii, ihist in enumerate(hists):
-            applyHistStyle(ihist, ii)
-            overflow(ihist)
-            ihist.Scale(1./ihist.GetSumOfWeights())
-            ihist.SetMaximum(ihist.GetBinContent(ihist.GetMaximumBin())*1.2)
-
-        comparisonPlots(hists, titles, False, 'plots_compare/' + vkey + '.pdf', False, False, True)
-        comparisonPlots(hists, titles, True, 'plots_compare/' + vkey + '_log.pdf', False, False, True)
+#filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
+#            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
+#            'data': {'file':TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_data_dist/Myroot.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
+#
+#
+#if False:
+#    ensureDir('plots_compare/')
+#
+#    for vkey, ivar in vardict.items():
+#
+#        print(vkey)
+#
+#        hists = []
+#        titles = []
+#
+#        for stype in ['data', 'sig_e1', 'sig_e2']:
+#        
+#
+#            ivar_new = copy.deepcopy(ivar)
+#            if stype.find('sig')!=-1:
+#                ivar_new['var'] = ivar_new['var'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
+#                ivar_new['sel'] = ivar_new['sel'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
+#            
+#            print(vkey, stype, ivar_new['var'], ivar_new['sel'])
+#
+#            hist = sproducer(stype, filedict[stype]['file'], vkey, ivar_new, filedict[stype]['sel'])
+#    
+#            hists.append(copy.deepcopy(hist))
+#            titles.append(stype)
+#
+#
+#        for ii, ihist in enumerate(hists):
+#            applyHistStyle(ihist, ii)
+#            overflow(ihist)
+#            ihist.Scale(1./ihist.GetSumOfWeights())
+#            ihist.SetMaximum(ihist.GetBinContent(ihist.GetMaximumBin())*1.2)
+#
+#        comparisonPlots(hists, titles, False, 'plots_compare/' + vkey + '.pdf', False, False, True)
+#        comparisonPlots(hists, titles, True, 'plots_compare/' + vkey + '_log.pdf', False, False, True)

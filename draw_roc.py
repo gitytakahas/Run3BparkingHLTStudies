@@ -24,12 +24,6 @@ parser.add_option("-p", "--pu", default=1.0, type="float", help="target PU", des
 
 
 effrefs = {
-#    'Mu12_IP6':0.00025,
-#    'Mu9_IP6':0.00056,
-#    'Mu9_IP5':0.00063,
-#    'Mu8_IP5':0.00088,
-#    'Mu7_IP4':0.00149
-
     'Mu12_IP6':0.00011,
     'Mu9_IP6':0.00025,
     'Mu9_IP5':0.00028,
@@ -243,14 +237,14 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
 ensureDir('plots')
 
-file_rate = TFile('ratemap.root')
+file_rate = TFile('root/ratemap.root')
 #ratemap = file_rate.Get('rate')
 #ratemap_mass = file_rate.Get('rate_mass')
 
 createPdf(file_rate, 'rate', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 createPdf(file_rate, 'rate_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 
-file_eff = TFile('effmap.root')
+file_eff = TFile('root/effmap.root')
 effmap = file_eff.Get('gall')
 
 file_ref = TFile('single-mu/dict.root')

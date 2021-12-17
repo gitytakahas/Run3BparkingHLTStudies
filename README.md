@@ -1,31 +1,37 @@
 # Run3BparkingHLTStudies
 
-Unless you want to generate analysis ROOT files by yourself, you don't need to follow following steps ... 
+# 1. setup ROOT 
 
-1. Setting up your environemnt https://twiki.cern.ch/twiki/bin/viewauth/CMS/EGMHLTRun3RecommendationForPAG
+```
+git clone git@github.com:gitytakahas/Run3BparkingHLTStudies.git
+cd Run3BparkingHLTStudies
+mkdir root 
+cp /afs/cern.ch/user/y/ytakahas/public/forRob/BparkingForRun3/*.root root/
+```
 
-2. Generate EDM file, starting from RAW mc/data. These can be found at 
+# 2. (re-)create efficiency 
 
-In case of MC, use /store/user/ytakahas/Trigger/Winter21/*.root 
-In case of data, use ```/EphemeralZeroBias*/Run2018D-v1/RAW``` where * stands for [1,8]
+```
+python compare_eff.py 
+```
 
-3. make flat ntuple, starting from EDM files
-
-> python3 makeRun3Ntup.py 
-
-4. generate ROOT file for the signal efficiency study, using the output in step3.
-
-> python3 eff_hlt.py
-
-5. generate ROOT file for the rate study, using the output in step3.
-
-> python3 rate.py 
+This will create effmap.root to be later used to make the ROC curve 
 
 
-6. efficiency plotting using the output in step4.
+# 3. (re-) create ROC curve 
 
-> python3 compare_eff.py
+```
+python draw_roc.py --pu 
+```
 
-7. rate plotting using the output in step5.
+The representative points are 
+   * pu = 25 (0.9E34)
+   * pu = 30 (1.1E34)
+   * pu = 36 (1.3E34)
+   * pu = 42 (1.5E34)
+   * pu = 47 (1.7E34)
+   * pu = 56 (2.0E34)
+   
+   
+   
 
-> python3 compare_rate.py 
