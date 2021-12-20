@@ -1,7 +1,7 @@
 import copy, math, os, sys
 from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGraph
 from officialStyle import officialStyle
-from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label
+from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
 
 l1_ptrange = np.arange(5, 11.5, 0.5).tolist() 
@@ -19,6 +19,7 @@ from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 parser.add_option('-w', '--weight', action="store_true", default=True, dest='weight')
+parser.add_option('-e', '--envelope', action="store_true", default=False, dest='envelope')
 parser.add_option("-p", "--pu", default=1.0, type="float", help="target PU", dest="pu")
 (options, args) = parser.parse_args()
 
@@ -30,14 +31,6 @@ effrefs = {
     'Mu8_IP5':0.00040,
     'Mu7_IP4':0.00066
     }
-
-def applyLegendSettings2(leg):     
-    leg.SetBorderSize(0)           
-    leg.SetFillColor(10)           
-    leg.SetLineColor(0)            
-    leg.SetFillStyle(0)            
-    leg.SetTextSize(0.05)          
-    leg.SetTextFont(42)     
 
 
 def returnGraph(name, rates, effs):
@@ -68,13 +61,6 @@ def ensureDir(directory):
         os.makedirs(directory)
 
 
-def applyLegendSettings(leg):
-    leg.SetBorderSize(0)
-    leg.SetFillColor(10)
-    leg.SetLineColor(0)
-    leg.SetFillStyle(0)
-    leg.SetTextSize(0.05)
-#    leg.SetTextFont(42)
 
 
 
@@ -113,7 +99,12 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
     graphs = []
     graphs_inv = []
+    graph_envelope = TGraph()
+    graph_envelope.SetName('envelope')
+    graph_envelope.SetTitle('envelope')
 
+    ii = 0
+    
     for l1pt in l1_ptrange:
 
         rates = []
@@ -134,7 +125,29 @@ def createROCPdf(effmap, file_rate, file_ref, name):
             rates.append(rate)
             effs.append(eff)
 
+            ##### 
+            if hltpt == l1pt - 1.:
+
+                print('(l1, hlt) = ', l1pt, hltpt)
+
+                graph_rep = TGraph()
+                graph_rep.SetName('rep_l1pt' + str(l1pt).replace('.','p') + '_hltpt' + str(hltpt).replace('.','p'))
+                graph_rep.SetTitle('rep_l1pt' + str(l1pt).replace('.','p') + '_hltpt' + str(hltpt).replace('.','p'))
+                
+                graph_rep.SetPoint(0, eff, rate)
+
+                graph_rep.SetMarkerColor(1)
+                graph_rep.SetMarkerSize(4)
+                graph_rep.SetMarkerStyle(42)
+
+                graphs.append(copy.deepcopy(graph_rep))
+
+                graph_envelope.SetPoint(ii, eff, rate)
+                ii += 1
+
+
         graph = returnGraph(l1pt, rates, effs)
+        graph.SetMarkerSize(1)
         graph.SetName('pt' + str(l1pt).replace('.','p'))
         graph.SetTitle('pt' + str(l1pt).replace('.','p'))
 
@@ -181,32 +194,77 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     frame_roc.GetYaxis().SetTitle('HLT Trigger Rate (Hz)')
     frame_roc.Draw()
 
-    leg = TLegend(0.2, 0.25,0.5,0.81)
-
-    applyLegendSettings(leg)
-    leg.SetTextSize(0.03)
 
 
-    for idx, graph in enumerate(graphs):
-#        print(idx)
+    if not options.envelope:
 
-        col = idx + 1
-        if col>=10:
-            col += 1
 
-        graph.SetLineColor(col)
-        graph.SetMarkerColor(col)
-        graph.SetMarkerSize(1)
-        graph.Draw('plsame')
-        leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
+        leg = TLegend(0.2, 0.25,0.5,0.81)
+        
+        applyLegendSettings(leg)
+        leg.SetTextSize(0.03)
 
+
+        col_ = 1
+
+        for idx, graph in enumerate(graphs):
+            if graph.GetName().find('rep')==-1:
+
+                col = col_
+                if col >=10:
+                    col += 1
+
+
+                graph.SetLineColor(col)
+                graph.SetMarkerColor(col)
+                leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
+
+                col_ += 1
+
+            graph.Draw('plsame')
+
+        leg.Draw()
+
+    else:
+
+        leg = TLegend(0.2, 0.6,0.5,0.81)
+        
+        applyLegendSettings(leg)
+        leg.SetTextSize(0.03)
+
+
+###        col_ = 1
+###
+###        for idx, graph in enumerate(graphs):
+###            if graph.GetName().find('rep')!=-1:
+###
+###                col = col_
+###                if col >=10:
+###                    col += 1
+###
+###                graph.SetLineColor(col)
+###                graph.SetMarkerColor(col)
+####                leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
+###
+###                col_ += 1
+###
+####                graph.Draw('psame')
+
+
+        graph_envelope.SetLineStyle(2)
+        graph_envelope.SetLineWidth(3)
+        graph_envelope.SetMarkerSize(2)
+        graph_envelope.SetMarkerStyle(21)
+        graph_envelope.Draw('plsame')
+        leg.AddEntry(graph_envelope, 'L1 p_{T} = [5, 11, 0.5], HLT = L1 - 1 GeV', 'l')
+        leg.Draw()
 
 
     for graph_ in graphs_ref:
         graph_.Draw('psame')
         leg.AddEntry(graph_, graph_.GetName().replace('ref_',''), 'p')
 
-    leg.Draw()
+
     l2=add_Preliminary()
     l2.Draw("same")
     l3=add_CMS()
@@ -222,8 +280,13 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
 
 
-    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.gif')
-    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.pdf')
+    if options.envelope:
+        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '_envelope.gif')
+        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '_envelope.pdf')
+    else:
+        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.gif')
+        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.pdf')
+        
 
     file = TFile('roc_' + name + '.root', 'recreate')
     for idx, graph in enumerate(graphs):

@@ -23,7 +23,13 @@ This will create effmap.root to be later used to make the ROC curve
 # 3. (re-) create ROC curve 
 
 ```
-python draw_roc.py --pu 25 (e.g. you can change the number here)
+python draw_roc.py --pu 50 (e.g. you can change the number here)
+```
+
+If you want to have the envelope of the best points (HLT = L1 - 1GeV), then, do, 
+
+```
+python draw_roc.py --pu 50 --envelope 
 ```
 
 The representative points are 
