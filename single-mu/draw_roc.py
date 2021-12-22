@@ -97,7 +97,6 @@ hltmenus = {
 }
 
 ensureDir('plots')
-ensureDir('root')
 
 
 file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/gen_for_singlemu.root')
@@ -277,6 +276,7 @@ for hlt, hltdict in hltmenus.items():
 #canvas.SaveAs('roc_hlt.pdf')
 
 if len(save2file)!=0:
+    ensureDir('root')
     out = TFile('root/obs_rate_summary_fit.root', 'recreate')
     for fit in save2file:
         fit.Write()

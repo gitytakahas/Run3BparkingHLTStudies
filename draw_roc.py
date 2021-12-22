@@ -4,8 +4,8 @@ from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
 
-l1_ptrange = np.arange(5, 11.5, 1).tolist() 
-hlt_ptrange = np.arange(4, 11.5, 1).tolist() 
+l1_ptrange = np.arange(5, 12, 1.0).tolist() 
+hlt_ptrange = np.arange(4, 12, 1.0).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)
@@ -19,8 +19,6 @@ from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
-parser.add_option('-e', '--envelope', action="store_true", default=False, dest='envelope')
-parser.add_option("-p", "--pu", default=1.0, type="float", help="target PU", dest="pu")
 (options, args) = parser.parse_args()
 
 
@@ -95,10 +93,9 @@ def createPdf(rootfile, pname, xt, yt, prec):
 
 
 
-def createROCPdf(effmap, file_rate, file_ref, name):
+def createROCPdf(effmap, file_rate, file_ref, npu, name):
 
     graphs = []
-    graphs_inv = []
     graph_envelope = TGraph()
     graph_envelope.SetName('envelope')
     graph_envelope.SetTitle('envelope')
@@ -122,7 +119,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
             
 #            rate = ratemap.GetBinContent(xbin, ybin)
 #            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
-            rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(options.pu)
+            rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(npu)
             eff = effmap.GetBinContent(xbin, ybin)
             
             rates.append(rate)
@@ -131,7 +128,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
             ##### 
             if hltpt == l1pt - 1.:
 
-                print('(l1, hlt) = ', l1pt, hltpt)
+#                print('(l1, hlt) = ', l1pt, hltpt)
 
                 graph_rep = TGraph()
                 graph_rep.SetName('rep_l1pt' + str(l1pt).replace('.','p') + '_hltpt' + str(hltpt).replace('.','p'))
@@ -161,8 +158,10 @@ def createROCPdf(effmap, file_rate, file_ref, name):
         graph_inv.SetTitle('inv_pt' + str(l1pt).replace('.','p'))
 
         graphs.append(copy.deepcopy(graph))
-        graphs_inv.append(copy.deepcopy(graph_inv))
+        graphs.append(copy.deepcopy(graph_inv))
 
+    graphs.append(copy.deepcopy(graph_envelope))
+    graphs.append(copy.deepcopy(graph_envelope_inv))
 
     graphs_ref = []
 
@@ -176,7 +175,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
         rate_ref = file_ref.Get(refname)
 
 #        print(refname, 0, effrefs[refname], rate_ref.Eval(options.pu)*2544.)
-        graph_ref.SetPoint(0, effrefs[refname], rate_ref.Eval(options.pu)*2544.)
+        graph_ref.SetPoint(0, effrefs[refname], rate_ref.Eval(npu)*2544.)
         if iref==0:
             graph_ref.SetMarkerStyle(30)
         else:
@@ -186,42 +185,53 @@ def createROCPdf(effmap, file_rate, file_ref, name):
         graph_ref.SetMarkerSize(3)
         graphs_ref.append(graph_ref)
 
+
+    # no envelope
+    makeCanvas(name, options.weight, False, graphs, graphs_ref, npu)
+
+    # with envelope
+    makeCanvas(name, options.weight, True, graphs, graphs_ref, npu)
+
+
+
+def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
+
     canvas = TCanvas(name)
     canvas.SetLogy()
     canvas.SetLogx()
     canvas.SetGridx()
     canvas.SetGridy()
 
-    if not options.weight: frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 1., 100000)
-    else : frame_roc = TH2F(name, name, 100, 0.0000003, 0.0003, 1000, 1., 100000)
-    
-    if not options.weight: frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
-    else: frame_roc.GetXaxis().SetTitle('L1 x HLT x analysis eff.')
+    if not weight: 
+        frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
+    else : 
+        frame_roc = TH2F(name, name, 100, 0.0000003, 0.0003, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('L1 x HLT x analysis eff.')
+
 
     frame_roc.GetYaxis().SetTitle('HLT Trigger Rate (Hz)')
     frame_roc.Draw()
 
     
-
-    if not options.envelope:
-
-
-        leg = TLegend(0.2, 0.25,0.5,0.65)
+    leg = TLegend(0.2, 0.25,0.5,0.65)
         
-        applyLegendSettings(leg)
-        leg.SetTextSize(0.03)
+    applyLegendSettings(leg)
+    leg.SetTextSize(0.03)
 
+    
+    if not envelope:
 
         col_ = 1
 
         for idx, graph in enumerate(graphs):
-            if graph.GetName().find('rep')==-1:
+            if graph.GetName().find('rep')==-1 and graph.GetName().find('envelope')==-1 and graph.GetName().find('inv')==-1:
 
                 col = col_
                 if col >=10:
                     col += 1
 
-
+                    
                 graph.SetLineColor(col)
                 graph.SetMarkerColor(col)
                 leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
@@ -230,41 +240,30 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
             graph.Draw('plsame')
 
-        leg.Draw()
+#        leg.Draw()
 
     else:
 
-        leg = TLegend(0.2, 0.6,0.5,0.81)
-        
-        applyLegendSettings(leg)
-        leg.SetTextSize(0.03)
+        for idx, graph in enumerate(graphs):
+            if graph.GetName()!='envelope': continue
+            
+#            print(idx, graph.GetName())
 
+            graph.SetLineStyle(2)
+            graph.SetLineWidth(3)
+            graph.SetMarkerSize(2)
+            graph.SetMarkerStyle(21)
+            graph.Draw('plsame')
+            leg.AddEntry(graph, 'L1 p_{T} = [5, 11, 0.5], HLT = L1 - 1 GeV', 'l')
 
-###        col_ = 1
-###
-###        for idx, graph in enumerate(graphs):
-###            if graph.GetName().find('rep')!=-1:
-###
-###                col = col_
-###                if col >=10:
-###                    col += 1
-###
-###                graph.SetLineColor(col)
-###                graph.SetMarkerColor(col)
-####                leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
-###
-###                col_ += 1
-###
-####                graph.Draw('psame')
+    leg.Draw()
 
-
-        graph_envelope.SetLineStyle(2)
-        graph_envelope.SetLineWidth(3)
-        graph_envelope.SetMarkerSize(2)
-        graph_envelope.SetMarkerStyle(21)
-        graph_envelope.Draw('plsame')
-        leg.AddEntry(graph_envelope, 'L1 p_{T} = [5, 11, 0.5], HLT = L1 - 1 GeV', 'l')
-        leg.Draw()
+    leg2 = TLegend(0.19, 0.81,0.3,0.85)
+    applyLegendSettings2(leg2)
+    leg2.SetTextSize(0.032)
+    leg2.SetTextFont(62)
+    leg2.AddEntry(frame_roc, 'L = {0:.1f}'.format(float(npu*0.0357338 - 0.0011904)) + 'E34 (PU ~ ' + str(npu) + ')', '')
+    leg2.Draw()
 
 
     for graph_ in graphs_ref:
@@ -278,52 +277,49 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     l3.Draw("same")
 
 
-    leg2 = TLegend(0.19, 0.81,0.3,0.85)
-    applyLegendSettings2(leg2)
-    leg2.SetTextSize(0.032)
-    leg2.SetTextFont(62)
-    leg2.AddEntry(frame_roc, 'L = {0:.1f}'.format(float(options.pu*0.0357338 - 0.0011904)) + 'E34 (PU ~ ' + str(options.pu) + ')', '')
-    leg2.Draw()
+    suffix1 = '_envelope' if envelope else ''
+    suffix2 = '_weighted' if weight else ''
 
-
-
-    suffix1 = '_envelope' if options.envelope else ''
-    suffix2 = '_weighted' if options.weight else ''
-    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') +suffix1+suffix2+ '.gif')
-    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') +suffix1+suffix2+ '.pdf')
+    canvas.SaveAs('plots/' + name + '_' + str(npu).replace('.','p') +suffix1+suffix2+ '.gif')
+    canvas.SaveAs('plots/' + name + '_' + str(npu).replace('.','p') +suffix1+suffix2+ '.pdf')
         
 
-    file = TFile('root/' + name + '_pu' + str(int(options.pu)) + '.root', 'recreate')
-    for idx, graph in enumerate(graphs):
-        graph.Write()
-    for idx, graph in enumerate(graphs_inv):
-        graph.Write()
+    if not envelope:
+        file = TFile('root/' + name + '_pu' + str(int(npu)) + '.root', 'recreate')
 
-    if options.envelope:
-        graph_envelope.Write()
-        graph_envelope_inv.Write()
+        for idx, graph in enumerate(graphs):
+            graph.Write()
 
-    file.Write()
-    file.Close()
+        file.Write()
+        file.Close()
+
+#    for idx, graph in enumerate(graphs_inv):
+#        graph.Write()
+
+        
+#    graph_envelope.Write()
+#    graph_envelope_inv.Write()
+
+
 
 
 
 ensureDir('plots')
 ensureDir('root')
 
-file_rate = TFile('root/ratemap.root')
-#ratemap = file_rate.Get('rate')
-#ratemap_mass = file_rate.Get('rate_mass')
+file_rate = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/ratemap4roc.root')
 
-createPdf(file_rate, 'rate', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
-createPdf(file_rate, 'rate_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
+#createPdf(file_rate, 'rate', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
+#createPdf(file_rate, 'rate_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 
 file_eff = None
-if not options.weight: file_eff = TFile('root/effmap.root')
-else: file_eff = TFile('root/effmap_weighted.root')
+
+if not options.weight: file_eff = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/effmap4roc.root')
+else: file_eff = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/effmap4roc_weighted.root')
+
 effmap = file_eff.Get('gall')
 
-file_ref = TFile('single-mu/dict.root')
+file_ref = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/obs_rate_summary_fit.root')
 #ref = file_ref.Get('Mu9_IP6')
 
 #createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
@@ -335,7 +331,10 @@ file_ref = TFile('single-mu/dict.root')
 
 #sys.exit(1)
 
-createROCPdf(effmap, file_rate, file_ref, 'roc_hlt')
+for npu in [56, 48, 42, 36, 30, 25, 17]:
+
+    createROCPdf(effmap, file_rate, file_ref, npu, 'roc_hlt')
+
 #createROCPdf(effmap, file_rate, file_ref, 'roc_mass_hlt')
 
 

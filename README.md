@@ -19,34 +19,32 @@ cd Run3BparkingHLTStudies
 # 3. (Can be skipped) derive efficiecny for single-mu after folding in analysis efficiency. 
 
 ```
-cd single-mu/
+cd $CMSSW_BASE/src/Run3BparkingHLTStudies/single-mu/
 python3 draw_roc.py --pr --weight 
 ```
 
-If you just need L1 times HLT trigger eff. you can do, instead,
-```
-cd single-mu/
-python3 draw_roc.py --pr
-```
-
+This will print out relevant numbers to be later used to make the ROC curve. 
+If you just need L1 times HLT trigger eff. just remove ```--weight``` option.
 These numbers have been already embedded into the ```draw_roc.py``` script, which is the one used for drawing the ROC curve.
 
 
 # 4. (Can be skipped) create efficiency map for di-e after folding in analysis efficiency.
 
 ```
+cd $CMSSW_BASE/src/Run3BparkingHLTStudies/
 python3 compare_eff.py --weight
 ```
 
 This will create the efficiency map to be later used to make the ROC curve. 
 If you don't want to fold in analysis efficiency, you can just remove ```--weight``` option. 
 Obtained maps are already stored in eos so this step can be skipped unless you want to create the new one.
-If you want to make comparison plots for several basic distributions at the HLT level, just add --plot option.
+If you want to make comparison plots for several basic distributions at the HLT level, just add ```--plot``` option.
 
 
 # 5. (Can be skipped) create rate map for di-electron trigger
 
 ```
+cd $CMSSW_BASE/src/Run3BparkingHLTStudies/
 python3 compare_rate.py
 ```
 
@@ -57,16 +55,12 @@ Obtained maps are already stored in eos so this step can be skipped unless you w
 # 6. Create ROC curve 
 
 ```
-python3 draw_roc.py --pu 50 --weight (e.g. you can change the number here)
+cd $CMSSW_BASE/src/Run3BparkingHLTStudies/
+python3 draw_roc.py --weight
 ```
 
-If you want to have the envelope of the best points (HLT = L1 - 1GeV), then, do, 
-
-```
-python3 draw_roc.py --pu 50 --weight --envelope 
-```
-
-The representative points are 
+The script will loop over relevant npu: 
+   * pu = 17 (0.6E34)
    * pu = 25 (0.9E34)
    * pu = 30 (1.1E34)
    * pu = 36 (1.3E34)
@@ -74,10 +68,13 @@ The representative points are
    * pu = 48 (1.7E34)
    * pu = 56 (2.0E34)
 
-This step will create the ROOT files containing the ROC curve, to be later used in the next step (estimate.py).
+and create the ROOT files containing each ROC curve, to be later used in the next step (estimate.py). If you want to have different npu, you can just edit the last few lines of ```draw_roc.py```.
 
 
 # 5. estimate Kee events
 ```
 python3 estimate.py 
 ```
+
+This will make a predictions about # of expected Kee events assuming 2018 like scenario (taken Fill 7321 as reference) or paseudo Run3 lumi profile (again taken from Fill 7321 but inserted 6h of lumi-levelling at the beginning with 2E34 and fall aftewards). 
+

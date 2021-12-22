@@ -1,7 +1,7 @@
 import copy, math, os
 from numpy import array
 #from CMGTools.H2TauTau.proto.plotter.categories_TauMu import cat_Inc
-from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TColor, kLightTemperature, TGraphErrors, Double
+from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TColor, kLightTemperature, TGraphErrors
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label
 from officialStyle import officialStyle
 from array import array
@@ -28,13 +28,13 @@ if options.weight:
     path='/eos/cms/store/group/phys_bphys/bpark/RKAnalysis/eff_maps/'
     eff_file = TFile(path+'eff.root')
     eff_histo = eff_file.Get('eff_pt1_vs_pt2_qsq_cen_weighted')
-    print 'Found analysis efficiencies!',eff_histo
+    print('Found analysis efficiencies!',eff_histo)
 
 l1_ptrange = np.arange(5, 12, 1).tolist()
 hlt_ptrange = np.arange(4, 12, 1).tolist()
 
-#l1_ptrange = np.arange(5, 5.6, 0.5).tolist() 
-#hlt_ptrange = np.arange(4, 4.6, 0.5).tolist() 
+#l1_ptrange = np.arange(5, 12, 0.5).tolist() 
+#hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
 
 colours = [1, 2, 4, 6, 8, 13, 15]
 styles = [1, 2, 4, 3, 5, 1, 1]
@@ -179,8 +179,6 @@ def sproducer(key, rootfile, name, ivar, addsel = '1'):
     return copy.deepcopy(hist)
 
 
-ensureDir('root/')
-
 
 xtit = "Generator-level electron p_{T} [GeV]"
 xtit_b = "Generator-level B p_{T} [GeV]"
@@ -289,7 +287,7 @@ def calcEff(tree, denstr, numstr):
                 gen_e2_pt = 'gen_e2_pt > ' + str(x_down)
                 if xbin < xbins : gen_e2_pt += ' && ' + 'gen_e2_pt < ' + str(x_up)
                 newgencut = ' && '.join([gen_e1_pt, gen_e2_pt, gen_pt, gen_eta])
-                entry = Double(tree.GetEntries(numstr + ' && ' + newgencut))
+                entry = float(tree.GetEntries(numstr + ' && ' + newgencut))
                 num += entry*eff
     # Efficiency
     eff = float(num)/float(den)
@@ -298,46 +296,47 @@ def calcEff(tree, denstr, numstr):
 
 qcut = 'e1_hlt_pms2 < 10000 && e1_hlt_invEInvP < 0.2 && e1_hlt_trkDEtaSeed < 0.01 && e1_hlt_trkDPhi < 0.2 && e1_hlt_trkChi2 < 40 && e1_hlt_trkValidHits >= 5 && e1_hlt_trkNrLayerIT >= 2'
 
-if True:
-    for il1, l1_pt in enumerate(l1_ptrange):
-        for ihlt, hlt_pt in enumerate(hlt_ptrange):
-            print("".join(["#",str(il1*len(hlt_ptrange)+ihlt)," out of ",str(len(l1_ptrange)*len(hlt_ptrange))]))
+for il1, l1_pt in enumerate(l1_ptrange):
+    for ihlt, hlt_pt in enumerate(hlt_ptrange):
+        print("".join(["#",str(il1*len(hlt_ptrange)+ihlt)," out of ",str(len(l1_ptrange)*len(hlt_ptrange))]))
 
-            sel_inclusive = '1'
-            sel_den = 'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= ' + str(l1_pt) + ' && e2_l1_pt >= ' + str(l1_pt) 
-            sel_dr = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_eedr < ' + str(drdict[hlt_pt])
-            sel_dr_mass = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_mee < 6'
-            
-            match_e1 = 'gen_e1_hlt_dr < 0.2 && e1_hlt_pt >= ' + str(hlt_pt)
-            match_e2 = 'gen_e2_hlt_dr < 0.2 && e2_hlt_pt >= ' + str(hlt_pt)
+        sel_inclusive = '1'
+        sel_den = 'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= ' + str(l1_pt) + ' && e2_l1_pt >= ' + str(l1_pt) 
+        sel_dr = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_eedr < ' + str(drdict[hlt_pt])
+        sel_dr_mass = 'l1_eedr < ' + str(drdict[l1_pt]) + ' && hlt_mee < 6'
+        
+        match_e1 = 'gen_e1_hlt_dr < 0.2 && e1_hlt_pt >= ' + str(hlt_pt)
+        match_e2 = 'gen_e2_hlt_dr < 0.2 && e2_hlt_pt >= ' + str(hlt_pt)
 
-            sel_e1 = '&&'.join([sel_den, match_e1])
-            sel_e2 = '&&'.join([sel_den, match_e2])
-            
-            sel_e1e2 = '&&'.join([sel_den, match_e1, match_e2])
-            sel_all = '&&'.join([sel_den, match_e1, match_e2, sel_dr, qcut, qcut.replace('e1', 'e2')])
+        sel_e1 = '&&'.join([sel_den, match_e1])
+        sel_e2 = '&&'.join([sel_den, match_e2])
+        
+        sel_e1e2 = '&&'.join([sel_den, match_e1, match_e2])
+        sel_all = '&&'.join([sel_den, match_e1, match_e2, sel_dr, qcut, qcut.replace('e1', 'e2')])
+        
+        sel_all_mass = '&&'.join([sel_den, match_e1, match_e2, sel_dr_mass, qcut, qcut.replace('e1', 'e2')])
 
-            sel_all_mass = '&&'.join([sel_den, match_e1, match_e2, sel_dr_mass, qcut, qcut.replace('e1', 'e2')])
-
-            #h_e1.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1))
-            #h_e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e2))
-            #h_e1e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1e2))
-            #h_all.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_all_mass))
-            h_gall.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
-            #h_gall_mass.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
+        #h_e1.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1))
+        #h_e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e2))
+        #h_e1e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1e2))
+        #h_all.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_all_mass))
+        h_gall.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
+        #h_gall_mass.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
 
 
-    if not options.weight: ofile = TFile('root/effmap4roc.root', 'recreate')
-    else:                  ofile = TFile('root/effmap4roc_weighted.root', 'recreate')
+ensureDir('root/')
+
+if not options.weight: ofile = TFile('root/effmap4roc.root', 'recreate')
+else:                  ofile = TFile('root/effmap4roc_weighted.root', 'recreate')
 #    h_e1.Write()
 #    h_e2.Write()
 #    h_e1e2.Write()
 #    h_all.Write()
-    h_gall.Write()
+h_gall.Write()
 #    h_gall_mass.Write()
 
-    ofile.Write()
-    ofile.Close()
+ofile.Write()
+ofile.Close()
 
         
     
