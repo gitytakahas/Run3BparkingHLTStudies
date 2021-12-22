@@ -19,13 +19,13 @@ from optparse import OptionParser, OptionValueError
 usage = "usage: python compare_eff.py"
 parser = OptionParser(usage)
 parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
+parser.add_option('-p', '--plot', action="store_true", default=False, dest='plot')
 (options, args) = parser.parse_args()
 
 # Analysis efficiency map
 eff_histo = None
 if options.weight:
     path='/eos/cms/store/group/phys_bphys/bpark/RKAnalysis/eff_maps/'
-    #path='./root/'
     eff_file = TFile(path+'eff.root')
     eff_histo = eff_file.Get('eff_pt1_vs_pt2_qsq_cen_weighted')
     print 'Found analysis efficiencies!',eff_histo
@@ -179,6 +179,9 @@ def sproducer(key, rootfile, name, ivar, addsel = '1'):
     return copy.deepcopy(hist)
 
 
+ensureDir('root/')
+
+
 xtit = "Generator-level electron p_{T} [GeV]"
 xtit_b = "Generator-level B p_{T} [GeV]"
 
@@ -223,40 +226,40 @@ vardict = {
 
 set_palette()
 
-file = TFile('root/geneff.root')
+file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/gen_for_efficiency_evaluation.root')
 tree = file.Get('tree')
 
 
-h_e1 = TH2F('e1' , 'e1', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
-
-h_e2 = TH2F('e2' , 'e2', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
-
-h_e1e2 = TH2F('e1e2' , 'e1e2', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
-
-h_all = TH2F('all' , 'all', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+#h_e1 = TH2F('e1' , 'e1', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+#
+#h_e2 = TH2F('e2' , 'e2', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+#
+#h_e1e2 = TH2F('e1e2' , 'e1e2', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+#
+#h_all = TH2F('all' , 'all', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
 
 h_gall = TH2F('gall' , 'gall', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
 
-h_gall_mass = TH2F('gall_mass' , 'gall_mass', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
+#h_gall_mass = TH2F('gall_mass' , 'gall_mass', len(l1_ptrange)-1, min(l1_ptrange), max(l1_ptrange), len(hlt_ptrange)-1, min(hlt_ptrange), max(hlt_ptrange))
 
 
-h_e1.GetXaxis().SetTitle('L1 di-electron X GeV')
-h_e1.GetYaxis().SetTitle('HLT leading-electron Y GeV')
-
-h_e2.GetXaxis().SetTitle('L1 di-electron X GeV')
-h_e2.GetYaxis().SetTitle('HLT subleading-electron Y GeV')
-
-h_e1e2.GetXaxis().SetTitle('L1 di-electron X GeV')
-h_e1e2.GetYaxis().SetTitle('HLT subleading-electron Y GeV')
-
-h_all.GetXaxis().SetTitle('L1 di-electron X GeV')
-h_all.GetYaxis().SetTitle('HLT di-electron Y GeV')
+#h_e1.GetXaxis().SetTitle('L1 di-electron X GeV')
+#h_e1.GetYaxis().SetTitle('HLT leading-electron Y GeV')
+#
+#h_e2.GetXaxis().SetTitle('L1 di-electron X GeV')
+#h_e2.GetYaxis().SetTitle('HLT subleading-electron Y GeV')
+#
+#h_e1e2.GetXaxis().SetTitle('L1 di-electron X GeV')
+#h_e1e2.GetYaxis().SetTitle('HLT subleading-electron Y GeV')
+#
+#h_all.GetXaxis().SetTitle('L1 di-electron X GeV')
+#h_all.GetYaxis().SetTitle('HLT di-electron Y GeV')
 
 h_gall.GetYaxis().SetTitle('HLT di-electron X GeV')
 h_gall.GetYaxis().SetTitle('HLT di-electron Y GeV')
 
-h_gall_mass.GetYaxis().SetTitle('HLT di-electron X GeV')
-h_gall_mass.GetYaxis().SetTitle('HLT di-electron Y GeV')
+#h_gall_mass.GetYaxis().SetTitle('HLT di-electron X GeV')
+#h_gall_mass.GetYaxis().SetTitle('HLT di-electron Y GeV')
 
 def calcEff(tree, denstr, numstr):
     # Denominator
@@ -320,18 +323,18 @@ if True:
             #h_e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e2))
             #h_e1e2.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_e1e2))
             #h_all.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_den, sel_all_mass))
-            h_gall.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all))
+            h_gall.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
             #h_gall_mass.SetBinContent(il1+1, ihlt+1, calcEff(tree, sel_inclusive, sel_all_mass))
 
 
-    if not options.weight: ofile = TFile('root/effmap.root', 'recreate')
-    else:                  ofile = TFile('root/effmap_weighted.root', 'recreate')
-    h_e1.Write()
-    h_e2.Write()
-    h_e1e2.Write()
-    h_all.Write()
+    if not options.weight: ofile = TFile('root/effmap4roc.root', 'recreate')
+    else:                  ofile = TFile('root/effmap4roc_weighted.root', 'recreate')
+#    h_e1.Write()
+#    h_e2.Write()
+#    h_e1e2.Write()
+#    h_all.Write()
     h_gall.Write()
-    h_gall_mass.Write()
+#    h_gall_mass.Write()
 
     ofile.Write()
     ofile.Close()
@@ -339,42 +342,42 @@ if True:
         
     
 
-#filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
-#            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
-#            'data': {'file':TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/job/HLT_data_dist/Myroot.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
-#
-#
-#if False:
-#    ensureDir('plots_compare/')
-#
-#    for vkey, ivar in vardict.items():
-#
-#        print(vkey)
-#
-#        hists = []
-#        titles = []
-#
-#        for stype in ['data', 'sig_e1', 'sig_e2']:
-#        
-#
-#            ivar_new = copy.deepcopy(ivar)
-#            if stype.find('sig')!=-1:
-#                ivar_new['var'] = ivar_new['var'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
-#                ivar_new['sel'] = ivar_new['sel'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
-#            
-#            print(vkey, stype, ivar_new['var'], ivar_new['sel'])
-#
-#            hist = sproducer(stype, filedict[stype]['file'], vkey, ivar_new, filedict[stype]['sel'])
-#    
-#            hists.append(copy.deepcopy(hist))
-#            titles.append(stype)
-#
-#
-#        for ii, ihist in enumerate(hists):
-#            applyHistStyle(ihist, ii)
-#            overflow(ihist)
-#            ihist.Scale(1./ihist.GetSumOfWeights())
-#            ihist.SetMaximum(ihist.GetBinContent(ihist.GetMaximumBin())*1.2)
-#
-#        comparisonPlots(hists, titles, False, 'plots_compare/' + vkey + '.pdf', False, False, True)
-#        comparisonPlots(hists, titles, True, 'plots_compare/' + vkey + '_log.pdf', False, False, True)
+filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
+            'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
+            'data': {'file':TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/hlt_data_perele_dist.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
+
+
+if options.plot:
+    ensureDir('plots/')
+
+    for vkey, ivar in vardict.items():
+
+        print(vkey)
+
+        hists = []
+        titles = []
+
+        for stype in ['data', 'sig_e1', 'sig_e2']:
+        
+
+            ivar_new = copy.deepcopy(ivar)
+            if stype.find('sig')!=-1:
+                ivar_new['var'] = ivar_new['var'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
+                ivar_new['sel'] = ivar_new['sel'].replace('hlt_', stype.replace('sig_','') + '_hlt_')
+            
+            print(vkey, stype, ivar_new['var'], ivar_new['sel'])
+
+            hist = sproducer(stype, filedict[stype]['file'], vkey, ivar_new, filedict[stype]['sel'])
+    
+            hists.append(copy.deepcopy(hist))
+            titles.append(stype)
+
+
+        for ii, ihist in enumerate(hists):
+            applyHistStyle(ihist, ii)
+            overflow(ihist)
+            ihist.Scale(1./ihist.GetSumOfWeights())
+            ihist.SetMaximum(ihist.GetBinContent(ihist.GetMaximumBin())*1.2)
+
+        comparisonPlots(hists, titles, False, 'plots/' + vkey + '.pdf', False, False, True)
+        comparisonPlots(hists, titles, True, 'plots/' + vkey + '_log.pdf', False, False, True)

@@ -309,6 +309,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
 
 ensureDir('plots')
+ensureDir('root')
 
 file_rate = TFile('root/ratemap.root')
 #ratemap = file_rate.Get('rate')

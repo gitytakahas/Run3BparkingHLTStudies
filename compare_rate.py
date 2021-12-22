@@ -141,12 +141,13 @@ def sproducer(key, rootfile, name, ivar, addsel = '1'):
 xtit = "Generator-level electron p_{T} [GeV]"
 xtit_b = "Generator-level B p_{T} [GeV]"
 
-ensureDir('plots_rate/')
+ensureDir('plots/')
+ensureDir('root/')
 
 set_palette()
 
 
-file = TFile('root/rate_data.root')
+file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/hlt_data_for_rate_evaluation.root')
 tree = file.Get('tree')
 
 
@@ -284,8 +285,8 @@ def effproducer(tree, hname, sel):
 #    leg2.AddEntry(hprof,   '{0:.2f}'.format(func.GetParameter(0)) + '*x^{3} + ' + '{0:.2f}'.format(func.GetParameter(1)) + '*x^{2}' + '{0:.2f}'.format(func.GetParameter(1)) + '*x', '')
 #    leg2.Draw()
 
-    can.SaveAs('plots_rate/' + hname + '.pdf')
-    can.SaveAs('plots_rate/' + hname + '.gif')
+    can.SaveAs('plots/' + hname + '.pdf')
+    can.SaveAs('plots/' + hname + '.gif')
 
     return copy.deepcopy(hprof), copy.deepcopy(hist), copy.deepcopy(func)
 
@@ -365,7 +366,7 @@ for il1, l1_pt in enumerate(l1_ptrange):
 
 
 
-ofile = TFile('root/ratemap.root', 'recreate')
+ofile = TFile('root/ratemap4roc.root', 'recreate')
 h_rate.Write()
 h_rate_mass.Write()
 

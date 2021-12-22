@@ -1,5 +1,5 @@
 import copy, math, os
-from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGraph, TF1, Double
+from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGraph, TF1
 from officialStyle import officialStyle
 from DisplayManager import add_CMS, add_Preliminary
 import numpy as np
@@ -19,7 +19,6 @@ from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
-parser.add_option("-l", "--lumi", default=1.0, type="float", help="target lumi. with [E34]", dest="lumi")
 parser.add_option('-p', '--pr', action="store_true", default=False, dest='pr')
 (options, args) = parser.parse_args()
 
@@ -33,7 +32,7 @@ if options.pr and options.weight:
     eff_histos['Mu8_IP5_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq8_weighted') #@@ this eff is actually for Mu8_IP3
     eff_histos['Mu9_IP6_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq9_weighted')
     eff_histos['Mu12_IP6_match'] = eff_file.Get('eff_pt1_vs_pt2_qsq12_weighted')
-    print 'Found analysis efficiencies!',eff_histos
+    print('Found analysis efficiencies!',eff_histos)
 
 def returnGraph(name, rates, effs):
     graph = TGraph()
@@ -97,13 +96,14 @@ hltmenus = {
     'Mu9_IP6_match':{'xmin':20, 'xmax':30},
 }
 
+ensureDir('plots')
+ensureDir('root')
 
 
-#file = TFile('/pnfs/psi.ch/cms/trivcat/store/user/ytakahas/Trigger/Winter21_miniAOD_mc_anal_official/Myroot.root')
-file = TFile('./root/singlemueff.root')
+file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/gen_for_singlemu.root')
 tree = file.Get('tree')
 
-ratefile = TFile('root/rate.root')
+ratefile = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/obs_rate_summary.root')
 
 save2file = []
 
@@ -129,7 +129,7 @@ for hlt, hltdict in hltmenus.items():
             gen_eta = 'abs(gen_e1_eta) < 2.5 && abs(gen_e2_eta) < 2.5'
             eff_histo = eff_histos.get(hlt,None)
             if eff_histo is not None :
-                print eff_histo
+                print(eff_histo)
                 ybins = eff_histo.GetYaxis().GetNbins()
                 xbins = eff_histo.GetXaxis().GetNbins()
                 cntr=0
@@ -148,11 +148,11 @@ for hlt, hltdict in hltmenus.items():
                         gen_e2_pt = 'gen_e2_pt > ' + str(x_down)
                         if xbin < xbins : gen_e2_pt += ' && ' + 'gen_e2_pt < ' + str(x_up)
                         newgencut = ' && '.join([gen_e1_pt, gen_e2_pt, gen_pt, gen_eta])
-                        entry = Double(tree.GetEntries(numstr + ' && ' + newgencut))
+                        entry = float(tree.GetEntries(numstr + ' && ' + newgencut))
                         num += entry*eff
             
         calc(hlt, num, den)
-        continue
+#        continue
 
     
     if hlt.find('match')!=-1: continue 
@@ -276,8 +276,8 @@ for hlt, hltdict in hltmenus.items():
 #canvas.SaveAs('roc_hlt.gif')
 #canvas.SaveAs('roc_hlt.pdf')
 
-if not options.pr:
-    out = TFile('dict.root', 'recreate')
+if len(save2file)!=0:
+    out = TFile('root/obs_rate_summary_fit.root', 'recreate')
     for fit in save2file:
         fit.Write()
 
