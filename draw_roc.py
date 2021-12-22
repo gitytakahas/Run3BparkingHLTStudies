@@ -102,6 +102,9 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     graph_envelope = TGraph()
     graph_envelope.SetName('envelope')
     graph_envelope.SetTitle('envelope')
+    graph_envelope_inv = TGraph()
+    graph_envelope_inv.SetName('envelope_inv')
+    graph_envelope_inv.SetTitle('envelope_inv')
 
     ii = 0
     
@@ -143,6 +146,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
                 graphs.append(copy.deepcopy(graph_rep))
 
                 graph_envelope.SetPoint(ii, eff, rate)
+                graph_envelope_inv.SetPoint(ii, rate, eff)
                 ii += 1
 
 
@@ -289,11 +293,16 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') +suffix1+suffix2+ '.pdf')
         
 
-    file = TFile('roc_' + name + '.root', 'recreate')
+    file = TFile('root/' + name + '_pu' + str(int(options.pu)) + '.root', 'recreate')
     for idx, graph in enumerate(graphs):
         graph.Write()
     for idx, graph in enumerate(graphs_inv):
         graph.Write()
+
+    if options.envelope:
+        graph_envelope.Write()
+        graph_envelope_inv.Write()
+
     file.Write()
     file.Close()
 

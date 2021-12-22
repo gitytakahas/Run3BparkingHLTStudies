@@ -1,26 +1,50 @@
-from ROOT import TDatime, TGraph, TFile, TH1F
-
-from optparse import OptionParser, OptionValueError
-usage = "usage: python estimate.py"
-parser = OptionParser(usage)
-
-parser.add_option('-c', '--create', action="store_true", default=False, dest='create')
-parser.add_option('-p', '--pseudo', action="store_true", default=False, dest='pseudo')
-parser.add_option("-t", "--l1tol", default=80000, type="float", help="max. l1 tolerance", dest="l1tol")
-
-(options, args) = parser.parse_args()
-
-print(options)
-
-
+from ROOT import TDatime, TGraph, TFile, TH1F, Double, TCanvas, TLegend, gROOT, gStyle, TH2F
+from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings
+from officialStyle import officialStyle
 import numpy as np
+import os, sys, copy
 
-lumi_level = 20160
+#gROOT.SetBatch(True)
+officialStyle(gStyle)
+gStyle.SetOptTitle(0)
+gStyle.SetOptStat(0)
+
+
+######### input parameters
+
+def returnPoint(graph, ii):
+    
+    xx = Double(0.)
+    yy = Double(0.)
+    
+    graph.GetPoint(ii, xx, yy)
+
+    return xx, yy
+
+def ensureDir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
+ensureDir('plots/')
+
+lumi_level = 20160 # 6h*3600s/h
+# http://www.lpthe.jussieu.fr/~cacciari/fonll/fonllform.html
+# truely inclusive cross-section
+fB = 0.4
+Sigma_B = 4.6940e+08 # pb
+Br_kee = 4.7e-7
+
+#rate=lumi*Sigma_B*pow(10.,-3)*Br_kee*eff
+
+prompt_hlt_bw = 100.
+integrated_lumi = 25.
+#############################
+
 
 l1_ptrange = np.arange(5, 11., 0.5).tolist() 
 hlt_ptrange = np.arange(4, 11., 0.5).tolist() 
 lumi_range = np.arange(0, lumi_level, 20).tolist() 
-
 
 
 drdict = {
@@ -48,37 +72,21 @@ drdict = {
 }   
 
 
-# http://www.lpthe.jussieu.fr/~cacciari/fonll/fonllform.html
-# truely inclusive cross-section
-#Sigma_B = 1.5250e+08 # pb
-fB = 0.4
-Sigma_B = 4.6940e+08 # fB*pb
-Br_kee = 4.7e-7
 
-print('Cross-section', Sigma_B)
-print('Branching ratio=', Br_kee)
+# create Luminosity profile ... 
 
-#lumi=10 # [nb-1 s-1]
-#eff=2e-4
+lumiprofile2output = 'root/lumiprof.root'
 
-#rate=lumi*Sigma_B*pow(10.,-3)*Br_kee*eff
-
-#print(lumi,Sigma_B,pow(10.,-3),Br_kee,eff)
-
-#print('rate=',rate)
-
-
-if options.create:
+if not os.path.exists(lumiprofile2output):
 
     ##https://cmsoms.cern.ch/cms/runs/report?cms_run=324980&cms_run_sequence=GLOBAL-RUN
     ##"324980": [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]],
-    ##golden = [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
     golden = [[53, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
 
-    times = []
+    times_ = []
     lumis = []
 
-    for line in open('/work/ytakahas/work/Trigger/CMSSW_11_1_0/src/Analysis/HLTAnalyserPy/test/LumiData_2018_20200401.csv', 'r'):
+    for line in open('LumiData/LumiData_2018_20200401.csv', 'r'):
 
         if line.find('324980:7321')==-1: continue
 
@@ -101,165 +109,88 @@ if options.create:
 
         time_ = TDatime(int(time[0].split('/')[2])+2000, int(time[0].split('/')[0]), int(time[0].split('/')[1]), int(time[1].split(':')[0]), int(time[1].split(':')[1]), int(time[1].split(':')[2]))
 
-        times.append(time_.Convert())
+        times_.append(time_.Convert())
         lumis.append(instL)
 
 
 
 
-    min_times = min(times)
+    min_times = min(times_)
 
-    times = [number - min_times for number in times]
+    times = [number - min_times for number in times_]
     
 
     graph = TGraph()
     graph.SetName('lumiprofile')
     graph.SetTitle('lumiprofile')
-
-#    graph_inv = TGraph()
-#    graph_inv.SetName('lumiprofile_inv')
-#    graph_inv.SetTitle('lumiprofile_inv')
 
     idx = 0
     for time, lumi in zip(times, lumis):
         graph.SetPoint(idx, time, lumi)
-#        graph_inv.SetPoint(idx, lumi, time)
 
         idx += 1
 
 
 
-    file = TFile('estimate.root', 'recreate')
-    graph.Write()
-#    graph_inv.Write()
-    file.Write()
-    file.Close()
+
+    graph_ll = TGraph()
+    graph_ll.SetName('lumiprofile_ll')
+    graph_ll.SetTitle('lumiprofile_ll')
 
 
-
-
-
-
-
-if options.pseudo:
-
-    ##https://cmsoms.cern.ch/cms/runs/report?cms_run=324980&cms_run_sequence=GLOBAL-RUN
-    ##"324980": [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]],
-    ##golden = [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
-    golden = [[53, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
-
-    times = []
-    lumis = []
-
-
-    for line in open('/work/ytakahas/work/Trigger/CMSSW_11_1_0/src/Analysis/HLTAnalyserPy/test/LumiData_2018_20200401.csv', 'r'):
-
-        if line.find('324980:7321')==-1: continue
-
-        line = line.rstrip().split(',')
-        ls = line[1].split(':')[0]
-
-
-        flag = False
-
-        for lrange in golden:
-            if int(ls) >= min(lrange) and int(ls) <= max(lrange):
-                flag = True
-    
-
-        if not flag: continue
-
-        time = line[2].split(' ')
-    
-        instL = float(line[5])*0.0001
-
-        time_ = TDatime(int(time[0].split('/')[2])+2000, int(time[0].split('/')[0]), int(time[0].split('/')[1]), int(time[1].split(':')[0]), int(time[1].split(':')[1]), int(time[1].split(':')[2]))
-
-        times.append(time_.Convert())
-        lumis.append(instL)
-
-
-
-    graph = TGraph()
-    graph.SetName('lumiprofile')
-    graph.SetTitle('lumiprofile')
-
-
-    min_times = min(times)
     idx = 0
 
     for ii in lumi_range:
-        graph.SetPoint(idx, ii, 2.)
+        graph_ll.SetPoint(idx, ii, 2.)
 
         idx+=1
 
-    times = [number - min_times + lumi_level  for number in times]
-    
+    times = [number - min_times + lumi_level  for number in times_]
 
-
-#    graph_inv = TGraph()
-#    graph_inv.SetName('lumiprofile_inv')
-#    graph_inv.SetTitle('lumiprofile_inv')
 
     for time, lumi in zip(times, lumis):
-        graph.SetPoint(idx, time, lumi + 0.2)
+        graph_ll.SetPoint(idx, time, lumi + 0.2)
 
         if time > 39600:
             break
 
-
-#        graph_inv.SetPoint(idx, lumi, time)
-
         idx += 1
 
 
 
-    file = TFile('estimate_pseudo.root', 'recreate')
+    file = TFile(lumiprofile2output, 'recreate')
     graph.Write()
-#    graph_inv.Write()
+    graph_ll.Write()
     file.Write()
     file.Close()
 
 
 
-
-
-
-file2read = 'estimate.root'
-
-if options.pseudo:
-    file2read = 'estimate_pseudo.root'
     
-file = TFile(file2read)
+file = TFile(lumiprofile2output)
+
+graph_norm = file.Get('lumiprofile')
+graph_ll = file.Get('lumiprofile_ll')
 
 
-graph = file.Get('lumiprofile')
-#graph_inv = file.Get('lumiprofile_inv')
-
-l1_file = TFile('/work/ytakahas/work/Trigger/CMSSW_11_1_0/src/Run3BparkingTriggerStudies/bandwidth.root')
+# This will be replaced once Sebastian derive realistic L1/HLT rates
+l1_file = TFile('root/bandwidth.root')
 l1rate = l1_file.Get('otherrate')
 
-hlt_file = TFile('rob/Run3BparkingHLTStudies/roc.root')
+#hlt_file = TFile('rob/Run3BparkingHLTStudies/roc.root')
 
 total = 0
 total_prompt = 0
-
-
  
+# PS column
+# Index,Name,Emergency,2.2E+34 ,2E+34, 1.7E+34, 1.5E+34, 1.3E+34, 1.1E+34, 9E+33, 6E+33
 
-
-#2E+34,1.7E+34,1.5E+34,1.3E+34,1.1E+34,9E+33,6E+33
+# conversion
+# nPU = (instL+0.0011904)/0.0357388
+# instL = nPU*0.0357338 - 0.0011904
 
 switch_lumi = [(2.0, 1.7), (1.7, 1.5), (1.5, 1.3), (1.3, 1.1), (1.1, 0.9), (0.9, 0.)]
-
-#menudict = {}
-
-#for sl in switch_lumi:
-#    menudict[sl] = graph_inv.Eval(sl)
-#}
-
-max_bw = options.l1tol
-print('max_l1 tolerance=', max_bw)
+switch_npu = [48, 42, 36, 30, 25, 17]
 
 max_bw_hlt = {
     2.0:1515,
@@ -270,159 +201,265 @@ max_bw_hlt = {
     0.9:2929
 }
     
+
+
+#    for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
+
+for graph, name in zip([graph_norm], ['norm']):
+
+    hists = []
+
+    #for l1tol in [80, 90]:
+    for l1tol in [80000]:
+
+
+        h_integral = TGraph()
+        h_integral.SetName('n_l1tol' + str(l1tol) + '_' +  name)
+        h_integral.SetTitle('n_l1tol' + str(l1tol) + '_' + name)
+
+        h_prompt_integral = TGraph()
+        h_prompt_integral.SetName('n_prompt_l1tol' + str(l1tol) + name)
+        h_prompt_integral.SetTitle('n_prompt_l1tol' + str(l1tol) + name)
+
+
+        total_lumi = 0
+        idx_total = 0
+        idx_total_prompt = 0
+
+        for ii in range(graph.GetN()):
+
+            if ii==0: continue
+
+#            import pdb; pdb.set_trace()
+
+            t1, instL = returnPoint(graph, ii)
+            t2, instL_ = returnPoint(graph, ii-1)
+
+#            instL = graph.GetPointY(ii)
+            time_duration = t1 - t2 #graph.GetPointX(ii) - graph.GetPointX(ii-1)
+
+            total_lumi += instL*10*time_duration
+            
+            which_lumi = -1
+            which_npu = -1
+
+            for index, sl in enumerate(switch_lumi):
+
+                if sl[1] <= instL and instL <= sl[0]:
+                    which_lumi = sl[1]
+                    which_npu = switch_npu[index]
     
 
-#print(menudict)
-
-print('n, xmin, xmax = ', graph.GetN(), graph.GetPointX(0), graph.GetPointX(graph.GetN()-1))
-
-#h_integral = TH1F('n', 'n', graph.GetN(), graph.GetPointX(0), graph.GetPointX(graph.GetN()-1))
-#h_prompt_integral = TH1F('n_prompt', 'n_prompt', graph.GetN(), graph.GetPointX(0), graph.GetPointX(graph.GetN()-1))
-
-h_integral = TGraph()
-h_prompt_integral = TGraph()
-
-h_integral.SetName('n')
-h_integral.SetTitle('n')
-
-h_prompt_integral.SetName('n_prompt')
-h_prompt_integral.SetTitle('n_prompt')
-
-total_lumi = 0
-idx_total = 0
-idx_total_prompt = 0
-
-for ii in range(graph.GetN()):
-
-    if ii==0: continue
-
-    instL = graph.GetPointY(ii)
-    time_duration = graph.GetPointX(ii) - graph.GetPointX(ii-1)
-
-#    print(instL, time_duration)
-
-    total_lumi += instL*10*time_duration
-    
-    which_lumi = -1
-
-    for sl in switch_lumi:
-
-#        print(sl[0], sl[1])
-        if sl[1] <= instL and instL <= sl[0]:
-            which_lumi = sl[0]
-    
-#    print(which_lumi)
-
-    # determine the L1 threshold ... the maximum one that can accommodated with L1 rate ... 
-
-    if which_lumi==-1: 
-        print('WARNING!!: no corresponding lumis!!!')
-        continue
-
-#    import pdb; pdb.set_trace()
-
-    parking_bw = max_bw - l1rate.Eval(which_lumi)
-
-    # scan which trigger will give us the best shot ... 
+            if which_lumi==-1: 
+                print('WARNING!!: no corresponding lumis!!!')
+                continue
 
 
-    roc_prompt = hlt_file.Get('inv_pt10p0')
-    eff_prompt = roc_prompt.Eval(100)
+            parking_bw = l1tol - l1rate.Eval(which_lumi)
 
-    print(ii, 'eff_prompt, instL', eff_prompt, instL)
+            print(instL, l1tol, which_lumi, which_npu, l1rate.Eval(which_lumi), parking_bw)
 
-    n_prompt = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff_prompt*time_duration
-    total_prompt += n_prompt
-#    h_prompt_integral.SetBinContent(ii+1, total_prompt)
-    h_prompt_integral.SetPoint(idx_total_prompt,  graph.GetPointX(ii), total_prompt)
-    idx_total_prompt += 1
-
-    which_pt_trigger = -1
-
-    diff = 1000000
-
-    for pt in l1_ptrange:
-        rate_ = l1_file.Get('doubleE' + str(pt).replace('.','p') + '_dR' + str(drdict[pt]).replace('.','p') + '0_fit')
-
-#        import pdb; pdb.set_trace()
-#        print(pt, 'doubleE' + str(pt).replace('.','p') + '_dR' + str(drdict[pt]).replace('.','p') + '0_fit')
-        if rate_.Eval(which_lumi) < parking_bw:
-#        if abs(rate_.Eval(which_lumi) - parking_bw) < diff:
-#            diff = abs(rate_.Eval(which_lumi) - parking_bw)
-            which_pt_trigger = pt
-            break
+            hlt_file = TFile('root/roc_hlt_pu' + str(which_npu) + '.root')
 
 
-    if which_pt_trigger==-1: 
-        print('L1 not available ... !')
-        continue
+            which_pt_trigger = 10.5
+            flag_park = False
 
+            for pt in l1_ptrange:
+
+                rate_ = l1_file.Get('doubleE' + str(pt) + ', dR < ' + str(drdict[pt]) + '0')
+                
+#                print('check=', 'doubleE' + str(pt).replace('.','p') + '_dR' + str(drdict[pt]).replace('.','p') + '0_fit', rate_)
+
+                if rate_.Eval(which_lumi) <= parking_bw:
+                    which_pt_trigger = pt
+                    flag_park = True
+                    break
+
+
+
+#            print(which_lumi, which_npu, which_pt_trigger, parking_bw)
+
+
+
+
+
+#            rochlt = hlt_file.Get('rep_l1pt' + str(which_pt_trigger).replace('.','p') + '_hltpt' + str(which_pt_trigger - 1).replace('.','p'))
+                
+
+
+
+
+            roc_prompt = hlt_file.Get('inv_pt' + str(which_pt_trigger).replace('.','p'))
+            eff_prompt = -1.
+
+            for ip in range(roc_prompt.GetN()):
+                hltrate, eff = returnPoint(roc_prompt, ip)
+                if hltrate < prompt_hlt_bw:
+                    eff_prompt = eff
+                    break
+
+
+
+
+###            diff = 10000. 
+###            eff_prompt = -1.
+###            rate_prompt = -1.
+###
+###            for ip in range(roc_prompt.GetN()):
+###                hltrate, dummy = returnPoint(roc_prompt, ip)
+###                
+###                diff_ = abs(hltrate - prompt_hlt_bw)
+###
+###                if diff_ < diff:
+###                    diff = diff_
+###                    dummy, eff_prompt = returnPoint(roc_prompt, ip)
+###                    rate_prompt = hltrate
+####                    break
+
+
+
+            if eff_prompt==-1:
+                print('WARNING!!: this cannot happen!')
+
+
+
+            n_prompt = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff_prompt*time_duration
+            total_prompt += n_prompt
+            h_prompt_integral.SetPoint(idx_total_prompt,  t1, total_prompt)
+#            print(idx_total_prompt,  t1, total_prompt)
+
+
+            idx_total_prompt += 1
+
+
+
+
+            if not flag_park: continue
+
+
+
+#                print('check = rep_l1pt' + str(which_pt_trigger).replace('.','p') + '_hltpt' + str(which_pt_trigger - 1).replace('.','p'))
+
+            rochlt = hlt_file.Get('rep_l1pt' + str(which_pt_trigger).replace('.','p') + '_hltpt' + str(which_pt_trigger - 1).replace('.','p'))
+            eff_hlt, dummy = returnPoint(rochlt, 0)    
+
+         
+#            for ip in range(roc.GetN()):
+#                hltrate = roc.GetPointX(ip)
+#                if hltrate < max_bw_hlt[which_lumi]:
+#                    eff_hlt = roc.GetPointY(ip)
+#                    break
+  
+   
+            n = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff_hlt*time_duration
+   
+            total += n
+
+            h_integral.SetPoint(idx_total, t1, total)
+            idx_total += 1
+
+#                print(idx_total, t1, total)
+
+
+        print(name, '--> l1 total rate = ', l1tol)
+ 
+        factor = integrated_lumi/(total_lumi*pow(10.,-6))
+
+        totalt, dummy = returnPoint(graph, graph.GetN()-1)
+
+        print('# of Total Kee events =', total, 'with time duration', totalt, 'sec')
+        print('Assuming ' + str(integrated_lumi) + '/fb of data, we will get', total*factor, 'events')
+        print('factor = ', integrated_lumi, total_lumi*pow(10.,-6), factor)
+        
+        print('# of prompt Kee events =', total_prompt, 'with time duration', totalt, 'sec')
+        print('Assuming ' + str(integrated_lumi) + '/fb of data, we will get ', total_prompt*factor, 'events')
+        
+        print('total lumi = ', total_lumi, 'nb^-1')
+        
+        hists.append(copy.deepcopy(h_prompt_integral))
+        hists.append(copy.deepcopy(h_integral))
         
 
-    # now check the HLT curve ... 
-    roc = hlt_file.Get('inv_pt' + str(which_pt_trigger).replace('.','p'))
+        ##### drawing ... 
+
+
+#    import pdb; pdb.set_trace()
+    canvas = TCanvas('can_' +  name)
+    canvas.SetGridx()
+    canvas.SetGridy()
     
-    # scan the point until it fits the budget ... 
-
-    eff = -1
-
-
-#    wheretolook = min(which_pt_trigger - 6, 4)
-#    wheretolook /= 0.5
-#    print(which_pt_trigger, 6, wheretolook)
-
-#    hltrate = roc.GetPointX(int(wheretolook))
-
-#    if hltrate > max_bw_hlt[which_lumi]:
-#        print('This HLT rate is way too large !!!!!!!!!!!!!!!!!! (lumi, hltrate, bw)=', which_lumi, hltrate, max_bw_hlt[which_lumi])
-
-
-    for ip in range(roc.GetN()):
-        hltrate = roc.GetPointX(ip)
-        if hltrate < max_bw_hlt[which_lumi]:
-            eff = roc.GetPointY(ip)
-            break
-   
+    leg = TLegend(0.2, 0.68,0.5,0.86)
     
-#    print('instL, lumi, l1 rate, parking_bw, max_bw, max_bw_hlt, eff, which_pt_trigger = ', instL, which_lumi, l1rate.Eval(which_lumi), parking_bw, max_bw, max_bw_hlt[which_lumi], eff, which_pt_trigger)
+    applyLegendSettings(leg)
+    leg.SetTextSize(0.03)
+    
+    ymax = max([hist.GetMaximum() for hist in hists])
 
-   
-    n = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff*time_duration
-   
-    total += n
-
-    h_integral.SetPoint(idx_total, graph.GetPointX(ii), total)
-    idx_total += 1
-     
-
+    frame = TH2F('frame_' + name, 'frame_' + name, graph.GetN(), 0, totalt, 100,0,100)
+    frame.GetXaxis().SetTitle('Time (s)')
+    frame.GetYaxis().SetTitle('Instantaneous Luminosity (E34)')
+    frame.Draw()
 
 
-#import pdb; pdb.set_trace()
-#(5e6)/53312 = 93.79
-# The run 324980 has 
+    for ii, hist in enumerate(hists):
 
-factor = 40./0.528
+        hist.SetMaximum(4)
+        hist.SetLineColor(ii+2)
+        hist.SetLineWidth(3)
+        hist.SetMarkerColor(ii+1)
+        hist.SetMarkerSize(1)
 
-print('# of Total Kee events =', total, 'with time duration', graph.GetPointX(graph.GetN()-1), 'sec')
-print('Assuming 40/fb of data, we will get ', total*factor, 'events')
+        hist.Draw('plsame')
 
-print('# of prompt Kee events =', total_prompt, 'with time duration', graph.GetPointX(graph.GetN()-1), 'sec')
-print('Assuming 40/fb of data, we will get ', total_prompt*factor, 'events')
-
-print('total lumi = ', total_lumi, 'nb')
+        leg.AddEntry(hist, hist.GetName().replace('bw_', 'L1 max = '), 'lep')
 
 
-file2out = 'n_' + str(options.l1tol) + '.root'
+    graph.SetLineWidth(3)
+    graph.Draw('same')
 
-if options.pseudo:
-    file2out = 'n_' + str(options.l1tol) + '_pseudo.root'
+#    prompt.SetLineColor(4)
+#    prompt.SetLineWidth(2)
+#    prompt.Draw('same')
 
-nfile = TFile(file2out, 'recreate')
+    leg.AddEntry(graph, 'Fill7321 (0.55/fb)', 'lep')
+#    leg.AddEntry(prompt, 'Prompt (5kHz at L1, 100Hz at HLT)', 'lep')
 
-h_integral.Write()
-h_prompt_integral.Write()
-graph.Write()
-nfile.Write()
-nfile.Close()
+    leg.Draw()
+
+    canvas.RedrawAxis();
+
+#    filename = 'plots/estimate.gif'
+
+#    if options.pseudo:
+#        filename = 'plots/estimate_pseudo.gif'
+
+    filename = 'plots/' + name + '.gif'
+
+    l2=add_Preliminary()
+    l2.Draw("same")
+    l3=add_CMS()
+    l3.Draw("same")
+    
+    canvas.SaveAs(filename)
+    canvas.SaveAs(filename.replace('.gif', '.pdf'))
 
 
+
+
+
+
+
+
+#        file2out = 'n_' + str(options.l1tol) + '.root'
+#
+#        if options.pseudo:
+#            file2out = 'n_' + str(options.l1tol) + '_pseudo.root'
+#
+#        nfile = TFile(file2out, 'recreate')
+#
+#        h_integral.Write()
+#        h_prompt_integral.Write()
+#        graph.Write()
+#        nfile.Write()
+#        nfile.Close()
