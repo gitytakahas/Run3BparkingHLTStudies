@@ -4,8 +4,8 @@ from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
 
-l1_ptrange = np.arange(5, 11.5, 0.5).tolist() 
-hlt_ptrange = np.arange(4, 11.5, 0.5).tolist() 
+l1_ptrange = np.arange(5, 11.5, 1).tolist() 
+hlt_ptrange = np.arange(4, 11.5, 1).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)
@@ -18,20 +18,20 @@ gStyle.SetOptStat(0)
 from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
-parser.add_option('-w', '--weight', action="store_true", default=True, dest='weight')
+parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
 parser.add_option('-e', '--envelope', action="store_true", default=False, dest='envelope')
 parser.add_option("-p", "--pu", default=1.0, type="float", help="target PU", dest="pu")
 (options, args) = parser.parse_args()
 
 
 effrefs = {
-    'Mu12_IP6':0.00011,
-    'Mu9_IP6':0.00025,
-    'Mu9_IP5':0.00028,
-    'Mu8_IP5':0.00040,
-    'Mu7_IP4':0.00066
+    #'Mu12_IP6':0.00011,
+    #'Mu9_IP6':0.00025,
+    'Mu9_IP6':0.00000329
+    #'Mu9_IP5':0.00028,
+    #'Mu8_IP5':0.00040,
+    #'Mu7_IP4':0.00066
     }
-
 
 def returnGraph(name, rates, effs):
     graph = TGraph()
@@ -163,7 +163,7 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     graphs_ref = []
 
 
-    for iref, refname in enumerate(['Mu12_IP6', 'Mu9_IP6', 'Mu9_IP5', 'Mu8_IP5', 'Mu7_IP4']):
+    for iref, refname in enumerate(['Mu9_IP6']):#['Mu12_IP6', 'Mu9_IP6', 'Mu9_IP5', 'Mu8_IP5', 'Mu7_IP4']):
 
         graph_ref = TGraph()
         graph_ref.SetName('ref_' + refname)
@@ -188,18 +188,21 @@ def createROCPdf(effmap, file_rate, file_ref, name):
     canvas.SetGridx()
     canvas.SetGridy()
 
-    frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 1., 100000)
+    if not options.weight: frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 1., 100000)
+    else : frame_roc = TH2F(name, name, 100, 0.0000003, 0.0003, 1000, 1., 100000)
+    
+    if not options.weight: frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
+    else: frame_roc.GetXaxis().SetTitle('L1 x HLT x analysis eff.')
 
-    frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
     frame_roc.GetYaxis().SetTitle('HLT Trigger Rate (Hz)')
     frame_roc.Draw()
 
-
+    
 
     if not options.envelope:
 
 
-        leg = TLegend(0.2, 0.25,0.5,0.81)
+        leg = TLegend(0.2, 0.25,0.5,0.65)
         
         applyLegendSettings(leg)
         leg.SetTextSize(0.03)
@@ -280,12 +283,10 @@ def createROCPdf(effmap, file_rate, file_ref, name):
 
 
 
-    if options.envelope:
-        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '_envelope.gif')
-        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '_envelope.pdf')
-    else:
-        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.gif')
-        canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') + '.pdf')
+    suffix1 = '_envelope' if options.envelope else ''
+    suffix2 = '_weighted' if options.weight else ''
+    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') +suffix1+suffix2+ '.gif')
+    canvas.SaveAs('plots/' + name + '_' + str(options.pu).replace('.','p') +suffix1+suffix2+ '.pdf')
         
 
     file = TFile('roc_' + name + '.root', 'recreate')
@@ -307,18 +308,20 @@ file_rate = TFile('root/ratemap.root')
 createPdf(file_rate, 'rate', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 createPdf(file_rate, 'rate_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 
-file_eff = TFile('root/effmap.root')
+file_eff = None
+if not options.weight: file_eff = TFile('root/effmap.root')
+else: file_eff = TFile('root/effmap_weighted.root')
 effmap = file_eff.Get('gall')
 
 file_ref = TFile('single-mu/dict.root')
 #ref = file_ref.Get('Mu9_IP6')
 
-createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
-createPdf(file_eff, 'e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
-createPdf(file_eff, 'e1e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
-createPdf(file_eff, 'all', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
-createPdf(file_eff, 'gall', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)',5 )
-createPdf(file_eff, 'gall_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)',5 )
+#createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
+#createPdf(file_eff, 'e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
+#createPdf(file_eff, 'e1e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
+#createPdf(file_eff, 'all', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
+#createPdf(file_eff, 'gall', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)',5 )
+#createPdf(file_eff, 'gall_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)',5 )
 
 #sys.exit(1)
 
