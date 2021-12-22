@@ -54,7 +54,7 @@ This will create the HLT rate map (as a function of number of pileup) to be late
 Obtained maps are already stored in eos so this step can be skipped unless you want to create the new one.
 
 
-# 6. (re-) create ROC curve 
+# 6. Create ROC curve 
 
 ```
 python3 draw_roc.py --pu 50 --weight (e.g. you can change the number here)
