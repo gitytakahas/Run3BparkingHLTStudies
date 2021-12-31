@@ -4,8 +4,8 @@ from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
 
-l1_ptrange = np.arange(5, 12, 1.0).tolist() 
-hlt_ptrange = np.arange(4, 12, 1.0).tolist() 
+l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
+hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)
@@ -20,6 +20,31 @@ usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
 parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
 (options, args) = parser.parse_args()
+
+
+drdict = {
+    4.0:1.0,
+    4.5:0.9,
+    5.0:0.9,
+    5.5:0.8,
+    6.0:0.8,
+    6.5:0.8,
+    7.0:0.8,
+    7.5:0.7,
+    8.0:0.7,
+    8.5:0.7,
+    9.0:0.7,
+    9.5:0.6,
+    10.0:0.6,
+    10.5:0.6,
+    11.0:0.6,
+    11.5:0.5,
+    12.0:0.5,
+    12.5:0.5,
+    13.0:0.5,
+    13.5:0.4,
+    14.0:0.4,
+}   
 
 
 effrefs = {
@@ -93,7 +118,7 @@ def createPdf(rootfile, pname, xt, yt, prec):
 
 
 
-def createROCPdf(effmap, file_rate, file_ref, npu, name):
+def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
     graphs = []
     graph_envelope = TGraph()
@@ -150,7 +175,15 @@ def createROCPdf(effmap, file_rate, file_ref, npu, name):
         graph = returnGraph(l1pt, rates, effs)
         graph.SetMarkerSize(1)
         graph.SetName('pt' + str(l1pt).replace('.','p'))
-        graph.SetTitle('pt' + str(l1pt).replace('.','p'))
+
+
+#        import pdb; pdb.set_trace()
+#        print('doubleE' + str(l1pt) + ', dR < ' + str(drdict[l1pt]) + '0')
+        l1_rate_file = l1_file_rate.Get('doubleE' + str(l1pt) + ', dR < ' + str(drdict[l1pt]) + '0')
+        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
+        l1_rate *= 0.001
+
+        graph.SetTitle('pt' + str(l1pt).replace('.','p') + ' (' + '{0:.1f}'.format(l1_rate) + 'kHz)')
 
         
         graph_inv = returnGraph(l1pt, effs, rates)
@@ -234,7 +267,7 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
                     
                 graph.SetLineColor(col)
                 graph.SetMarkerColor(col)
-                leg.AddEntry(graph, 'Level-1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
+                leg.AddEntry(graph, 'L1 p_{T} > ' + graph.GetTitle().replace('pt','').replace('p','.'), 'l')
 
                 col_ += 1
 
@@ -254,7 +287,7 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
             graph.SetMarkerSize(2)
             graph.SetMarkerStyle(21)
             graph.Draw('plsame')
-            leg.AddEntry(graph, 'L1 p_{T} = [5, 11, 0.5], HLT = L1 - 1 GeV', 'l')
+            leg.AddEntry(graph, 'L1 p_{T} = [5, 10, 1], HLT = L1 - 1 GeV', 'l')
 
     leg.Draw()
 
@@ -322,6 +355,8 @@ effmap = file_eff.Get('gall')
 file_ref = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/obs_rate_summary_fit.root')
 #ref = file_ref.Get('Mu9_IP6')
 
+l1_file_rate = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/l1_bandwidth.root')
+
 #createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
 #createPdf(file_eff, 'e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
 #createPdf(file_eff, 'e1e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
@@ -333,7 +368,7 @@ file_ref = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/si
 
 for npu in [56, 48, 42, 36, 30, 25, 17]:
 
-    createROCPdf(effmap, file_rate, file_ref, npu, 'roc_hlt')
+    createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, 'roc_hlt')
 
 #createROCPdf(effmap, file_rate, file_ref, 'roc_mass_hlt')
 
