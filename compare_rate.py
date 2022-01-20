@@ -7,6 +7,7 @@ from officialStyle import officialStyle
 from array import array
 import numpy as np
 import itertools
+from common import path
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
@@ -147,7 +148,7 @@ ensureDir('root/')
 set_palette()
 
 
-file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/hlt_data_for_rate_evaluation.root')
+file = TFile(path+'ee/hlt_data_for_rate_evaluation.root')
 tree = file.Get('tree')
 
 
@@ -366,7 +367,7 @@ for il1, l1_pt in enumerate(l1_ptrange):
 
 
 
-ofile = TFile('root/ratemap4roc.root', 'recreate')
+ofile = TFile('root/ee/ratemap4roc.root', 'recreate')
 h_rate.Write()
 h_rate_mass.Write()
 
