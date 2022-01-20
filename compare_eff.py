@@ -7,6 +7,7 @@ from officialStyle import officialStyle
 from array import array
 import numpy as np
 import itertools
+from common import path
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
@@ -25,9 +26,8 @@ parser.add_option('-p', '--plot', action="store_true", default=False, dest='plot
 # Analysis efficiency map
 eff_histo = None
 if options.weight:
-    path='/eos/cms/store/group/phys_bphys/bpark/RKAnalysis/eff_maps/'
-    eff_file = TFile(path+'eff.root')
-    eff_histo = eff_file.Get('eff_pt1_vs_pt2_qsq_cen_weighted')
+    eff_file = TFile(path+'eff_maps/2022Jan19/eff.root')
+    eff_histo = eff_file.Get('tot16_pt1_vs_pt2_qsq_weighted')
     print('Found analysis efficiencies!',eff_histo)
 
 l1_ptrange = np.arange(5, 12, 1).tolist()
@@ -224,7 +224,7 @@ vardict = {
 
 set_palette()
 
-file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/gen_for_efficiency_evaluation.root')
+file = TFile(path+'ee/gen_for_efficiency_evaluation.root')
 tree = file.Get('tree')
 
 
@@ -326,8 +326,8 @@ for il1, l1_pt in enumerate(l1_ptrange):
 
 ensureDir('root/')
 
-if not options.weight: ofile = TFile('root/effmap4roc.root', 'recreate')
-else:                  ofile = TFile('root/effmap4roc_weighted.root', 'recreate')
+if not options.weight: ofile = TFile('root/ee/effmap4roc.root', 'recreate')
+else:                  ofile = TFile('root/ee/effmap4roc_weighted.root', 'recreate')
 #    h_e1.Write()
 #    h_e2.Write()
 #    h_e1e2.Write()
@@ -343,7 +343,7 @@ ofile.Close()
 
 filedict = {'sig_e1': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2'},
             'sig_e2': {'file':file, 'sel':'gen_e1_l1_dr < 0.2 && gen_e2_l1_dr < 0.2 && e1_l1_pt >= 6 && e2_l1_pt >= 6 && gen_e1_hlt_dr < 0.2 && gen_e2_hlt_dr < 0.2'},
-            'data': {'file':TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/hlt_data_perele_dist.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
+            'data': {'file':TFile(path+'ee/hlt_data_perele_dist.root'), 'sel':'isgjson==1 && l1_doubleE6==1'}}
 
 
 if options.plot:
