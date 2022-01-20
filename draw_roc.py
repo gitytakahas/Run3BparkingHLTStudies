@@ -3,6 +3,7 @@ from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGra
 from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
+from common import path
 
 l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
 hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
@@ -49,8 +50,7 @@ drdict = {
 
 effrefs = {
     #'Mu12_IP6':0.00011,
-    #'Mu9_IP6':0.00025,
-    'Mu9_IP6':0.00000329
+    'Mu9_IP6':0.00000371 if options.weight else 0.00025312
     #'Mu9_IP5':0.00028,
     #'Mu8_IP5':0.00040,
     #'Mu7_IP4':0.00066
@@ -340,22 +340,22 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
 ensureDir('plots')
 ensureDir('root')
 
-file_rate = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/ratemap4roc.root')
+file_rate = TFile(path+'ee/ratemap4roc.root')
 
 #createPdf(file_rate, 'rate', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 #createPdf(file_rate, 'rate_mass', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 0)
 
 file_eff = None
 
-if not options.weight: file_eff = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/effmap4roc.root')
-else: file_eff = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/effmap4roc_weighted.root')
+if not options.weight: file_eff = TFile(path+'ee/effmap4roc.root')
+else: file_eff = TFile(path+'ee/effmap4roc_weighted.root')
 
 effmap = file_eff.Get('gall')
 
-file_ref = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/obs_rate_summary_fit.root')
+file_ref = TFile(path+'single-mu/obs_rate_summary_fit.root')
 #ref = file_ref.Get('Mu9_IP6')
 
-l1_file_rate = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/l1_bandwidth.root')
+l1_file_rate = TFile(path+'ee/l1_bandwidth.root')
 
 #createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
 #createPdf(file_eff, 'e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
