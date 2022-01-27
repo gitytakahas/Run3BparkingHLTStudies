@@ -26,9 +26,9 @@ lumi_level = 20160 # 6h*3600s/h
 # truely inclusive cross-section
 fB = 0.4
 Sigma_B = 4.6940e+08 # pb
-Br_kee = 4.7e-7
+Br_kee = 2*4.7e-7
 
-prompt_hlt_bw = 100.
+#prompt_hlt_bw = 100.
 integrated_lumi = 25.
 
 
@@ -194,12 +194,12 @@ max_bw_hlt = {
     
 
 
-for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
-#for graph, name in zip([graph_ll], ['ll']):
+#for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
+for graph, name in zip([graph_norm], ['norm']):
 
     hists = []
  
-    for il1, l1tol in enumerate([80000, 90000]):
+    for il1, l1tol in enumerate([80000]):
 
 
         h_integral = TGraph()
@@ -210,20 +210,20 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
         h_integral.SetLineWidth(3)
 
 
-        if il1==1:
-            h_prompt_integral = TGraph()
-            h_prompt_integral.SetName('n_prompt_l1tol' + str(l1tol) + '_' + name)
-            h_prompt_integral.SetTitle('Prompt: 10 GeV (5kHz @ L1), 100Hz @ HLT')
-            h_prompt_integral.SetLineColor(4)
-            h_prompt_integral.SetMarkerSize(0)
-            h_prompt_integral.SetLineWidth(3)
+#        if il1==1:
+#            h_prompt_integral = TGraph()
+#            h_prompt_integral.SetName('n_prompt_l1tol' + str(l1tol) + '_' + name)
+#            h_prompt_integral.SetTitle('Prompt: 10 GeV (5kHz @ L1), 100Hz @ HLT')
+#            h_prompt_integral.SetLineColor(4)
+#            h_prompt_integral.SetMarkerSize(0)
+#            h_prompt_integral.SetLineWidth(3)
 
 
         total = 0
-        total_prompt = 0
+#        total_prompt = 0
         total_lumi = 0
         idx_total = 0
-        idx_total_prompt = 0
+#        idx_total_prompt = 0
 
         for ii in range(graph.GetN()):
 
@@ -242,7 +242,7 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
             for index, sl in enumerate(switch_lumi):
 
                 if sl[1] <= instL and instL <= sl[0]:
-                    which_lumi = sl[1]
+                    which_lumi = sl[0]
                     which_npu = switch_npu[index]
                     break
 
@@ -261,6 +261,7 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
             # determine L1 threshold ... 
             which_l1pt = 10.
             flag_park = False
+            l1_ee_rate = None
             
             for pt in l1_ptrange:
                 
@@ -268,9 +269,12 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
                 rate_ = l1_file_official.Get('L1_DoubleEG' + str(pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[pt]).replace('.','p'))
 #                rate_ = l1_file_official.Get('doubleE' + str(pt) + ', dR < ' + str(drdict[pt]) + '0')
 
-                if rate_.Eval(which_npu)*1000. <= parking_bw:
+                rate_ = rate_.Eval(which_npu)*1000
+
+                if rate_ <= parking_bw:
                     which_l1pt = pt
                     flag_park = True
+                    l1_ee_rate = rate_
                     break
 
 
@@ -279,28 +283,28 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
 
 #            roc = hlt_file.Get('inv_pt' + str(which_l1pt).replace('.','p'))
 
-            if il1==1:
-                roc = hlt_file.Get('inv_pt10p0')
-
-                eff = -1.
-
-                for ip in range(roc.GetN()):
-                    if roc.GetPointX(ip) < prompt_hlt_bw:
-                        eff = roc.GetPointY(ip)
-                        break
-
-
-                print('\t prompt: HLT eff. =', eff, 'max b/w=', prompt_hlt_bw)
-                if eff==-1:
-                    print('WARNING!!: this cannot happen!')
-
-
-
-                n_prompt = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff*time_duration
-                total_prompt += n_prompt
-                h_prompt_integral.SetPoint(idx_total_prompt,  graph.GetPointX(ii), total_prompt)
-
-                idx_total_prompt += 1
+###            if il1==1:
+###                roc = hlt_file.Get('inv_pt10p0')
+###
+###                eff = -1.
+###
+###                for ip in range(roc.GetN()):
+###                    if roc.GetPointX(ip) < prompt_hlt_bw:
+###                        eff = roc.GetPointY(ip)
+###                        break
+###
+###
+####                print('\t prompt: HLT eff. =', eff, 'max b/w=', prompt_hlt_bw)
+###                if eff==-1:
+###                    print('WARNING!!: this cannot happen!')
+###
+###
+###
+###                n_prompt = instL*10.*fB*Sigma_B*pow(10.,-3)*Br_kee*eff*time_duration
+###                total_prompt += n_prompt
+###                h_prompt_integral.SetPoint(idx_total_prompt,  graph.GetPointX(ii), total_prompt)
+###
+###                idx_total_prompt += 1
 
 
 
@@ -310,7 +314,7 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
                 print('\t L1 not available')
                 continue
 
-            print('\t which_l1pt=', which_l1pt)
+            print('\t which_l1pt=', which_l1pt, 'with l1 ee rate = ', l1_ee_rate)
 
 
 #                print('check = rep_l1pt' + str(which_l1pt).replace('.','p') + '_hltpt' + str(which_l1pt - 1).replace('.','p'))
@@ -354,13 +358,13 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
         print('# of Total Kee events =', total, 'with time duration', totalt, 'sec')
         print('Assuming ' + str(integrated_lumi) + '/fb of data, we will get', total*factor, 'events')
        
-        print('# of prompt Kee events =', total_prompt, 'with time duration', totalt, 'sec')
-        print('Assuming ' + str(integrated_lumi) + '/fb of data, we will get ', total_prompt*factor, 'events')
+#        print('# of prompt Kee events =', total_prompt, 'with time duration', totalt, 'sec')
+#        print('Assuming ' + str(integrated_lumi) + '/fb of data, we will get ', total_prompt*factor, 'events')
         
         print('total lumi = ', total_lumi, 'nb^-1')
         
         hists.append(copy.deepcopy(h_integral))
-        if il1 == 1: hists.append(copy.deepcopy(h_prompt_integral))
+#        if il1 == 1: hists.append(copy.deepcopy(h_prompt_integral))
         
 
         ##### drawing ... 
