@@ -3,6 +3,7 @@ from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGra
 from officialStyle import officialStyle
 from DisplayManager import add_CMS, add_Preliminary
 import numpy as np
+from common import path
 
 l1_ptrange = np.arange(6, 11.5, 1).tolist() 
 hlt_ptrange = np.arange(4, 11.5, 1).tolist() 
@@ -25,13 +26,11 @@ parser.add_option('-p', '--pr', action="store_true", default=False, dest='pr')
 # Analysis efficiency map
 eff_histos = {}
 if options.pr and options.weight:
-    path='/eos/cms/store/group/phys_bphys/bpark/RKAnalysis/eff_maps/'
-    #path='./root/'
-    eff_file = TFile(path+'eff.root')
-    eff_histos['Mu7_IP4_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq7_weighted')
-    eff_histos['Mu8_IP5_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq8_weighted') #@@ this eff is actually for Mu8_IP3
-    eff_histos['Mu9_IP6_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq9_weighted')
-    eff_histos['Mu12_IP6_match'] = eff_file.Get('eff_pt1_vs_pt2_qsq12_weighted')
+    eff_file = TFile(path+'eff_maps/2022Jan19/eff.root')
+    #eff_histos['Mu7_IP4_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq7_weighted')
+    #eff_histos['Mu8_IP5_match']  = eff_file.Get('eff_pt1_vs_pt2_qsq8_weighted') #@@ this eff is for Mu8_IP3!!
+    eff_histos['Mu9_IP6_match']  = eff_file.Get('tot16_pt1_vs_pt2_qsq9_weighted')
+    #eff_histos['Mu12_IP6_match'] = eff_file.Get('eff_pt1_vs_pt2_qsq12_weighted')
     print('Found analysis efficiencies!',eff_histos)
 
 def returnGraph(name, rates, effs):
@@ -99,10 +98,10 @@ hltmenus = {
 ensureDir('plots')
 
 
-file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/gen_for_singlemu.root')
+file = TFile(path+'single-mu/gen_for_singlemu.root')
 tree = file.Get('tree')
 
-ratefile = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/single-mu/obs_rate_summary.root')
+ratefile = TFile(path+'single-mu/obs_rate_summary.root')
 
 save2file = []
 
@@ -277,7 +276,7 @@ for hlt, hltdict in hltmenus.items():
 
 if len(save2file)!=0:
     ensureDir('root')
-    out = TFile('root/obs_rate_summary_fit.root', 'recreate')
+    out = TFile('../root/single-mu/obs_rate_summary_fit.root', 'recreate')
     for fit in save2file:
         fit.Write()
 
