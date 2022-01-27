@@ -165,6 +165,7 @@ graph_ll = file.Get('lumiprofile_ll')
 
 # This will be replaced once Sebastian derive realistic L1/HLT rates
 l1_file = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/l1_bandwidth.root')
+l1_file_official = TFile('/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/ee/l1_bandwidth_official.root')
 l1rate = l1_file.Get('otherrate')
 
 # PS column
@@ -263,9 +264,11 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
             
             for pt in l1_ptrange:
                 
-                rate_ = l1_file.Get('doubleE' + str(pt) + ', dR < ' + str(drdict[pt]) + '0')
+#                rate_ = l1_file.Get('doubleE' + str(pt) + ', dR < ' + str(drdict[pt]) + '0')
+                rate_ = l1_file_official.Get('L1_DoubleEG' + str(pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[pt]).replace('.','p'))
+#                rate_ = l1_file_official.Get('doubleE' + str(pt) + ', dR < ' + str(drdict[pt]) + '0')
 
-                if rate_.Eval(which_lumi) <= parking_bw:
+                if rate_.Eval(which_npu)*1000. <= parking_bw:
                     which_l1pt = pt
                     flag_park = True
                     break

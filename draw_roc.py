@@ -179,9 +179,12 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
 #        import pdb; pdb.set_trace()
 #        print('doubleE' + str(l1pt) + ', dR < ' + str(drdict[l1pt]) + '0')
-        l1_rate_file = l1_file_rate.Get('doubleE' + str(l1pt) + ', dR < ' + str(drdict[l1pt]) + '0')
-        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
-        l1_rate *= 0.001
+#        l1_rate_file = l1_file_rate.Get('doubleE' + str(l1pt) + ', dR < ' + str(drdict[l1pt]) + '0')
+#        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
+#        l1_rate *= 0.001
+
+        l1_rate_file = l1_file_rate.Get('L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
+        l1_rate = l1_rate_file.Eval(npu)
 
         graph.SetTitle('pt' + str(l1pt).replace('.','p') + ' (' + '{0:.1f}'.format(l1_rate) + 'kHz)')
 
@@ -247,7 +250,7 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
     frame_roc.Draw()
 
     
-    leg = TLegend(0.2, 0.25,0.5,0.65)
+    leg = TLegend(0.18, 0.25,0.4,0.65)
         
     applyLegendSettings(leg)
     leg.SetTextSize(0.03)
@@ -271,7 +274,7 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
 
                 col_ += 1
 
-            graph.Draw('plsame')
+                graph.Draw('plsame')
 
 #        leg.Draw()
 
@@ -355,7 +358,7 @@ effmap = file_eff.Get('gall')
 file_ref = TFile(path+'single-mu/obs_rate_summary_fit.root')
 #ref = file_ref.Get('Mu9_IP6')
 
-l1_file_rate = TFile(path+'ee/l1_bandwidth.root')
+l1_file_rate = TFile(path+'ee/l1_bandwidth_official.root')
 
 #createPdf(file_eff, 'e1', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
 #createPdf(file_eff, 'e2', 'Level-1 di-e X (GeV)', 'HLT di-e Y (GeV)', 5)
