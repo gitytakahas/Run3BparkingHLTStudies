@@ -4,6 +4,7 @@ from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, 
 from officialStyle import officialStyle
 import numpy as np
 import os, sys, copy
+from common import path
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
@@ -32,8 +33,8 @@ Br_kee = 2*4.5e-7
 integrated_lumi = 25.
 
 
-l1_ptrange = np.arange(5, 11, 1.0).tolist() 
-hlt_ptrange = np.arange(4, 11, 1.0).tolist() 
+l1_ptrange = np.arange(5, 11, 0.5).tolist() 
+#l1_ptrange = np.arange(5, 11, 1.0).tolist() 
 lumi_range = np.arange(0, lumi_level, 20).tolist() 
 
 
@@ -193,12 +194,12 @@ max_bw_hlt = {
     
 
 
-#for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
-for graph, name in zip([graph_norm], ['norm']):
+for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
+#for graph, name in zip([graph_norm], ['norm']):
 
     hists = []
  
-    for il1, l1tol in enumerate([80000]):
+    for il1, l1tol in enumerate([90000,95000]):
 
 
         h_integral = TGraph()
@@ -259,7 +260,7 @@ for graph, name in zip([graph_norm], ['norm']):
 
             #@@print('L=', instL, ', which lumi=', which_lumi, '(npu = ', which_npu, '), l1 rate =', l1rate.Eval(which_lumi), ', l1 b/w =', parking_bw)
 
-            hlt_file = TFile('root/roc_hlt_pu' + str(which_npu) + '.root')
+            hlt_file = TFile(path + 'ee/roc_hlt_pu' + str(which_npu) + '.root')
 
 
             # determine L1 threshold ... 
@@ -401,7 +402,7 @@ for graph, name in zip([graph_norm], ['norm']):
     
     ymax = max([hist.GetMaximum() for hist in hists])
 
-    frame = TH2F('frame_' + name, 'frame_' + name, graph.GetN(), 0, totalt, 100,0,6.)
+    frame = TH2F('frame_' + name, 'frame_' + name, graph.GetN(), 0, totalt, 100,0,10.)
     frame.GetXaxis().SetTitle('Time (s)')
 #    frame.GetYaxis().SetTitle('Instantaneous Luminosity (E34)')
     frame.GetYaxis().SetTitle('Cumulative # of Kee events')

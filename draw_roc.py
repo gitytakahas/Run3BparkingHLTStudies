@@ -5,8 +5,11 @@ from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, 
 import numpy as np
 from common import path
 
-l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
-hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
+#l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
+#hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
+
+l1_ptrange = np.arange(5, 11, 0.5).tolist() 
+hlt_ptrange = np.arange(4, 11, 0.5).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)

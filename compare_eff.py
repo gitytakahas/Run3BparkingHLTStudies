@@ -30,8 +30,10 @@ if options.weight:
     eff_histo = eff_file.Get('tot16_pt1_vs_pt2_qsq_weighted')
     print('Found analysis efficiencies!',eff_histo)
 
-l1_ptrange = np.arange(5, 12, 1).tolist()
-hlt_ptrange = np.arange(4, 12, 1).tolist()
+#l1_ptrange = np.arange(5, 12, 1).tolist()
+l1_ptrange = np.arange(5, 11, 0.5).tolist()
+#hlt_ptrange = np.arange(4, 12, 1).tolist()
+hlt_ptrange = np.arange(4, 11, 0.5).tolist()
 
 #l1_ptrange = np.arange(5, 12, 0.5).tolist() 
 #hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
