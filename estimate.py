@@ -26,7 +26,7 @@ lumi_level = 20160 # 6h*3600s/h
 # truely inclusive cross-section
 fB = 0.4
 Sigma_B = 4.6940e+08 # pb
-Br_kee = 2*4.7e-7
+Br_kee = 2*4.5e-7
 
 #prompt_hlt_bw = 100.
 integrated_lumi = 25.
@@ -175,9 +175,8 @@ l1rate = l1_file.Get('otherrate')
 # nPU = (instL+0.0011904)/0.0357388
 # instL = nPU*0.0357338 - 0.0011904
 
-switch_lumi = [(2.2, 2.0), (2.0, 1.7), (1.7, 1.5), (1.5, 1.3), (1.3, 1.1), (1.1, 0.9), (0.9, 0.6)]
+switch_lumi = [(2.0, 1.7), (1.7, 1.5), (1.5, 1.3), (1.3, 1.1), (1.1, 0.9), (0.9, 0.6), (0.6, 0.1)] #(2.2, 2.0),
 switch_npu = [56, 48, 42, 36, 30, 25, 17]
-
 
 # HLT bandwidth from Sara's presentation
 # https://indico.cern.ch/event/1032638/contributions/4336416/attachments/2234250/3786463/2018BParking_forParkingRun3.pdf
@@ -225,13 +224,15 @@ for graph, name in zip([graph_norm], ['norm']):
         idx_total = 0
 #        idx_total_prompt = 0
 
+        old_lumi = -1
+        time_elapsed = 0.
         for ii in range(graph.GetN()):
 
             if ii==0: continue
 
-            instL = max(graph.GetPointY(ii), 0.6)
+            instL = max(graph.GetPointY(ii), 0.1)
             time_duration = graph.GetPointX(ii) - graph.GetPointX(ii-1)
-
+            time_elapsed += time_duration
             total_lumi += instL*10*time_duration
             
             # check which luminosity it is ... 
@@ -242,6 +243,7 @@ for graph, name in zip([graph_norm], ['norm']):
             for index, sl in enumerate(switch_lumi):
 
                 if sl[1] <= instL and instL <= sl[0]:
+                    switch = True
                     which_lumi = sl[0]
                     which_npu = switch_npu[index]
                     break
@@ -250,10 +252,12 @@ for graph, name in zip([graph_norm], ['norm']):
                 print('WARNING!!: no corresponding lumis!!!')
                 continue
 
+            switch = True if which_lumi != old_lumi else False
+            old_lumi = which_lumi
 
             parking_bw = l1tol - l1rate.Eval(which_lumi)
 
-            print('L=', instL, ', which lumi=', which_lumi, '(npu = ', which_npu, '), l1 rate =', l1rate.Eval(which_lumi), ', l1 b/w =', parking_bw)
+            #@@print('L=', instL, ', which lumi=', which_lumi, '(npu = ', which_npu, '), l1 rate =', l1rate.Eval(which_lumi), ', l1 b/w =', parking_bw)
 
             hlt_file = TFile('root/roc_hlt_pu' + str(which_npu) + '.root')
 
@@ -311,10 +315,10 @@ for graph, name in zip([graph_norm], ['norm']):
             ########
 
             if not flag_park: 
-                print('\t L1 not available')
+                #@@print('\t L1 not available')
                 continue
 
-            print('\t which_l1pt=', which_l1pt, 'with l1 ee rate = ', l1_ee_rate)
+            #@@print('\t which_l1pt=', which_l1pt, 'with l1 ee rate = ', l1_ee_rate)
 
 
 #                print('check = rep_l1pt' + str(which_l1pt).replace('.','p') + '_hltpt' + str(which_l1pt - 1).replace('.','p'))
@@ -331,7 +335,7 @@ for graph, name in zip([graph_norm], ['norm']):
                     eff_hlt = roc.GetPointY(ip)
                     break
   
-            print('\t parking: HLT eff. =', eff_hlt, 'max b/w=', max_bw_hlt[which_lumi])
+            #@@print('\t parking: HLT eff. =', eff_hlt, 'max b/w=', max_bw_hlt[which_lumi])
 
             if eff_hlt==-1:
                 print('!!!!!! This cannot happen !!!!')
@@ -343,6 +347,21 @@ for graph, name in zip([graph_norm], ['norm']):
 
             h_integral.SetPoint(idx_total, graph.GetPointX(ii), total)
             idx_total += 1
+
+            if switch:
+                print(
+                    " ".join(["ii:",str(ii),
+                    "dt:",str(time_duration),
+                    "time:",str(time_elapsed),
+                    "Peak:",str(which_lumi),
+                    "Linst:",str("{:.3f}".format(instL)),
+                    "spare:",str("{:.0f}".format(parking_bw)),
+                    "pT:",str(which_l1pt),
+                    "rate:",str("{:.0f}".format(l1_ee_rate)),
+                    "Eff:",str("{:.6f}".format(eff_hlt)),
+                    "dN:",str("{:.4f}".format(n)),
+                    "N:",str("{:.4f}".format(total))])
+                )
 
 #                print(idx_total, t1, total)
 
