@@ -31,7 +31,7 @@ if options.weight:
     print('Found analysis efficiencies!',eff_histo)
 
 #l1_ptrange = np.arange(5, 12, 1).tolist()
-l1_ptrange = np.arange(5, 11, 0.5).tolist()
+l1_ptrange = np.arange(4, 11, 0.5).tolist()
 #hlt_ptrange = np.arange(4, 12, 1).tolist()
 hlt_ptrange = np.arange(4, 11, 0.5).tolist()
 
@@ -44,7 +44,7 @@ styles = [1, 2, 4, 3, 5, 1, 1]
 drdict = {
     3.0:1.0,
     3.5:1.0,
-    4.0:1.0,
+    4.0:0.9,
     4.5:0.9,
     5.0:0.9,
     5.5:0.8,

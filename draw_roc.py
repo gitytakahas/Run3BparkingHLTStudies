@@ -8,7 +8,7 @@ from common import path
 #l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
 #hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
 
-l1_ptrange = np.arange(5, 11, 0.5).tolist() 
+l1_ptrange = np.arange(4, 11, 0.5).tolist() 
 hlt_ptrange = np.arange(4, 11, 0.5).tolist() 
 
 print('l1', l1_ptrange)
@@ -27,7 +27,7 @@ parser.add_option('-w', '--weight', action="store_true", default=False, dest='we
 
 
 drdict = {
-    4.0:1.0,
+    4.0:0.9,
     4.5:0.9,
     5.0:0.9,
     5.5:0.8,
@@ -149,7 +149,8 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 #            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
             rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(npu)
             eff = effmap.GetBinContent(xbin, ybin)
-            
+
+#            print('rate, eff=', rate, eff)
             rates.append(rate)
             effs.append(eff)
 

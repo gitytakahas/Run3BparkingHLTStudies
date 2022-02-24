@@ -17,7 +17,7 @@ gStyle.SetOptStat(0)
 #gStyle.SetTitleOffset(1.0,"Y")
 gStyle.SetPadBottomMargin(0.22)
 
-l1_ptrange = np.arange(5, 12, 0.5).tolist() 
+l1_ptrange = np.arange(4, 12, 0.5).tolist() 
 hlt_ptrange = np.arange(4, 12, 0.5).tolist() 
 
 #l1_ptrange = np.arange(9.5, 9.6, 0.5).tolist() 
