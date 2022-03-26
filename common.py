@@ -1,2 +1,187 @@
+from ROOT import TDatime, TFile, TGraph
+from datetime import datetime
+import os, copy
+import numpy as np
+from numpy import median
+import numpy as np
+from collections import deque,Counter
+from bisect import insort, bisect_left
+from itertools import islice
+
+################################################################################
+# Define path to input files
+
 local=False
 path='./root/' if local else '/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/'
+
+################################################################################
+# Running median
+# Taken from https://code.activestate.com/recipes/578480-running-median-mean-and-mode/
+
+def RunningMedian(seq, M):
+    seq = iter(seq)
+    s = []   
+    m = M // 2
+
+    # Set up list s (to be sorted) and load deque with first window of seq
+    s = [item for item in islice(seq,M)]    
+    d = deque(s)
+
+    # Simple lambda function to handle even/odd window sizes    
+    median = lambda : s[m] if bool(M&1) else (s[m-1]+s[m])*0.5
+
+    # Sort it in increasing order and extract the median ("center" of the sorted window)
+    s.sort()    
+    medians = [median()]   
+
+    # Now slide the window by one point to the right for each new position (each pass through 
+    # the loop). Stop when the item in the right end of the deque contains the last item in seq
+    for item in seq:
+        old = d.popleft()          # pop oldest from left
+        d.append(item)             # push newest in from right
+        del s[bisect_left(s, old)] # locate insertion point and then remove old 
+        insort(s, item)            # insert newest such that new sort is not required        
+        medians.append(median())  
+    return medians
+
+
+################################################################################
+# Create Luminosity profiles ... 
+
+def createLumiProfiles(output='root/lumiprof.root',backup=False) :
+
+    if os.path.exists(output): 
+        print("Warning! File already exists!")
+        if backup : 
+            print("Renaming...")
+            today = datetime.today().strftime('%Y%m%d_%H%M%S')
+            os.rename(output,output.replace(".root","_{:s}.root".format(today)))
+
+    max_duration = 12*3600
+    level_duration = 6*3600
+
+    ##########
+    # Parse csv file ...
+
+    #https://cmsoms.cern.ch/cms/runs/report?cms_run=324980&cms_run_sequence=GLOBAL-RUN
+    #"324980": [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]],
+    golden = [[53, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
+    times = []
+    lumis = []
+    for line in open('LumiData/LumiData_2018_20200401.csv', 'r'):
+        if line.find('324980:7321')==-1: continue
+
+        line = line.rstrip().split(',')
+        ls = line[1].split(':')[0]
+
+        flag = False
+        for lrange in golden:
+            if int(ls) >= min(lrange) and int(ls) <= max(lrange): flag = True
+        if not flag: continue
+
+        time = line[2].split(' ')
+        time = TDatime(int(time[0].split('/')[2])+2000, 
+                       int(time[0].split('/')[0]), 
+                       int(time[0].split('/')[1]), 
+                       int(time[1].split(':')[0]), 
+                       int(time[1].split(':')[1]), 
+                       int(time[1].split(':')[2]))
+        times.append(time.Convert())
+
+        Linst = float(line[5])*0.0001
+        lumis.append(Linst)
+
+    ##########
+    # Data mangle
+    
+    # Start at zero
+    min_time = min(times) 
+    times = [number - min_time for number in times]
+
+    # Check if times are sorted
+    if(times != sorted(times)):
+        print "Times not sorted!"
+        quit()
+
+    # Copy before truncating
+    times_orig = copy.deepcopy(times)
+    lumis_orig = copy.deepcopy(lumis)
+
+    # Smooth with running median
+    window = 7 # odd
+    lumis = RunningMedian(lumis,window) # shortens by window-1
+    for i in range((window-1)/2): # pad
+        lumis.insert(0,lumis[0])
+        lumis.insert(-1,lumis[-1])
+
+    # Truncate to 12 hours    
+    times,lumis = zip(*filter(lambda time: 
+                              time[0]<max_duration, 
+                              zip(times,lumis)))
+
+    # Just to protect against outliers
+    peak_lumi = median(lumis[:10])
+
+    ##########
+    # Produce graphs
+    file = TFile(output, 'recreate')
+
+    # Falling from 1.8E34 (original, not truncated!)
+    graph = TGraph()
+    graph.SetName('falling_from_1p8e34_original')
+    graph.SetTitle('falling_from_1p8e34_original')
+    idx = 0
+    for time, lumi in zip(times_orig, lumis_orig):
+        graph.SetPoint(idx, time, lumi) 
+        idx += 1
+    graph.Write()
+
+    # Falling from 1.8E34 
+    graph = TGraph()
+    graph.SetName('falling_from_1p8e34')
+    graph.SetTitle('falling_from_1p8e34')
+    idx = 0
+    for time, lumi in zip(times, lumis):
+        graph.SetPoint(idx, time, lumi) 
+        idx += 1
+    graph.Write()
+
+    # Falling from 0.9E34 
+    graph = TGraph()
+    graph.SetName('falling_from_0p9e34')
+    graph.SetTitle('falling_from_0p9e34')
+    idx = 0
+    for time, lumi in zip(times, lumis):
+        graph.SetPoint(idx, time, lumi/2.) #@@ halved!
+        idx += 1
+    graph.Write()
+
+    # Determine median value for time difference
+    diff = [ y-x for x, y in zip(times[0::], times[1::]) ]
+    step = median(diff)
+    lumi_range = np.arange(0, level_duration, step).tolist() 
+
+    # Levelled at 2.0E34 
+    levelling = zip([2.0,1.7,1.5,1.3,1.1,0.9,0.6,0.45,0.30,0.15],
+                    ["2p0e34","1p7e34","1p5e34","1p3e34","1p1e34",
+                     "0p9e34","0p6e34","4p5e33","3p0e33","1p5e33"])
+    for level,name in levelling:
+        graph = TGraph()
+        graph.SetName('levelled_at_'+name)
+        graph.SetTitle('levelled_at_'+name)
+        idx = 0
+        for time in lumi_range:
+            graph.SetPoint(idx, time, level) # set levelled values
+            idx+=1
+        times_adj = [number + level_duration for number in times] # start at end of levelling
+        lumi_adj = level - peak_lumi
+        lumis_adj = [lumi + lumi_adj for lumi in lumis] # adjust lumi to levelled
+        for time, lumi in zip(times_adj, lumis_adj):
+            if time > max_duration : continue
+            graph.SetPoint(idx, time, max(0.,lumi))
+            idx += 1
+        graph.Write()
+    
+    # Write to file and close
+    file.Write()
+    file.Close()
