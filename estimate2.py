@@ -12,11 +12,6 @@ officialStyle(gStyle)
 gStyle.SetOptTitle(0)
 gStyle.SetOptStat(0)
 
-# 2 axes
-gStyle.SetPadTopMargin(0.08)
-gStyle.SetPadLeftMargin(0.13)
-gStyle.SetPadRightMargin(0.26)
-
 ################################################################################
 # input parameters
 
@@ -142,7 +137,6 @@ for idx,profile in enumerate(profiles):
             for index, sl in enumerate(switch_lumi):
 
                 if sl[1] < Linst and Linst <= sl[0]:
-                    #switch = True
                     which_lumi = sl[0]
                     which_npu = switch_npu[index]
                     break
@@ -157,11 +151,6 @@ for idx,profile in enumerate(profiles):
 
             l1_rate = l1_his.Eval(which_lumi)
             l1_rate = hackRate(l1_rate,which_lumi) # <<< HACK HACK HACK
-            # vvv HACK HACK HACK vvv
-            #if   which_lumi == 0.45 : l1_rate *= 0.45/0.6
-            #elif which_lumi == 0.30 : l1_rate *= 0.30/0.6
-            #elif which_lumi == 0.15 : l1_rate *= 0.15/0.6
-            # ^^^ HACK HACK HACK ^^^
             spare = l1_max+l1_rate_corr - l1_rate
             if style==0: gspare.SetPoint(ls_cntr, profile.GetPointX(ii), spare)
 
@@ -181,11 +170,6 @@ for idx,profile in enumerate(profiles):
                                             'er1p22_dR_' + str(drdict[pt]).replace('.','p'))
                 ee_rate = histo_ee_rate.Eval(which_npu)*1000
                 ee_rate = hackRate(ee_rate,which_lumi) # <<< HACK HACK HACK
-                # vvv HACK HACK HACK vvv
-                #if   which_lumi == 0.45 : ee_rate *= 0.45/0.6
-                #elif which_lumi == 0.30 : ee_rate *= 0.30/0.6
-                #elif which_lumi == 0.15 : ee_rate *= 0.15/0.6
-                # ^^^ HACK HACK HACK ^^^
                 l1_ok = ee_rate < allocation or ee_rate < (spare+allocation)
                 if l1_ok:
                     which_l1pt = pt
@@ -249,13 +233,19 @@ for idx,profile in enumerate(profiles):
         print('Expected # of Kee events:', total_count*factor)
         summary.append((name,allocation,total_lumi,total_count))
 
-    ##########
-    # Create canvas
-    canvas = TCanvas('canvas_' +  name)
-    canvas.SetGridx()
-    canvas.SetGridy()
+    # First, lumi profile (only), then add estimates
+    for only_profile in [True,False]:
 
-    for only_profile in [False]:
+        # Margins
+        gStyle.SetPadTopMargin(0.08)
+        gStyle.SetPadLeftMargin(0.14)
+        if not only_profile:
+            gStyle.SetPadRightMargin(0.26)
+
+        # Create canvas
+        canvas = TCanvas('canvas_' +  name)
+        canvas.SetGridx()
+        canvas.SetGridy()
 
         # Maximum for y-axis
         ymax = 2.5 if only_profile else 13.0 #max([graph.GetPointY(graph.GetN()-1) for graph in graphs])*1.2
@@ -265,7 +255,7 @@ for idx,profile in enumerate(profiles):
                      profile.GetN(), 0, total_time, # time axis
                      100, 0, ymax ) # counts axis
         frame.GetXaxis().SetTitle('Time [s]')
-        if only_profile : frame.GetYaxis().SetTitle('L_{inst} [E34 Hz/cm^{2}]''L_{inst} [E34 Hz/cm^{2}]')
+        if only_profile : frame.GetYaxis().SetTitle('L_{inst} [10^{34} Hz/cm^{2}]')
         else : frame.GetYaxis().SetTitle('Cumulative number of Kee candidates')
         frame.SetTitleOffset(1.2)
         frame.Draw()
@@ -274,7 +264,7 @@ for idx,profile in enumerate(profiles):
         t = TLatex()
         t.SetTextAlign(11)
         t.SetTextSize(0.035)
-        t.DrawLatexNDC(0.45,0.87,"Allocation [kHz]")
+        if not only_profile: t.DrawLatexNDC(0.45,0.87,"Allocation [kHz]")
         upper = 0.86
         lower = upper-len(graphs)*0.04
         leg = TLegend(0.45,lower,0.7,upper)
@@ -286,7 +276,7 @@ for idx,profile in enumerate(profiles):
             for ii, graph in enumerate(graphs[::-1]): # in reverse order
                 graph.Draw('lsame')
                 leg.AddEntry(graph, graph.GetTitle(), 'l')
-        canvas.Update();
+        canvas.Update()
 
         # Draw axis on right hand side
         if not only_profile: 
@@ -359,15 +349,15 @@ for idx,profile in enumerate(profiles):
 #            last = time
 
         # Add CMS labels
-        l2=add_Private(text="#it{Private Work}",x=0.25)
+        l2=add_Private(text="#it{Private Work}",x=0.27)
         l2.Draw("same")
-        l3=add_CMS(x=0.13)
+        l3=add_CMS(x=0.14)
         l3.Draw("same")
-        l4=add_lumi(total_lumi)
+        l4=add_lumi(total_lumi,x=0.8 if only_profile else 0.6)
         l4.Draw("same")
 
         # Save canvas
-        canvas.Update();
+        canvas.Update()
         filename = 'plots/'+name+'.pdf'
         if not only_profile: filename = filename.replace("plots/","plots/estimates_for_")
         canvas.SaveAs(filename)
