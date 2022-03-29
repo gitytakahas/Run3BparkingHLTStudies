@@ -50,7 +50,7 @@ def add_label():
     return lumi
 
 
-def add_lumi(value,x=0.6,y=0.84):
+def add_lumi(value,x=0.6,y=0.835):
     lowX=x
     lowY=y
     lumi = ROOT.TPaveText(lowX, lowY+0.06, lowX+0.15, lowY+0.16, "NDC")
@@ -78,7 +78,7 @@ def add_Preliminary():
     return lumi
 
 
-def add_Private(text="Private work in progress",x=0.5,y=0.84):
+def add_Private(text="Private work in progress",x=0.5,y=0.835):
     lowX=x
     lowY=y
     lumi  = ROOT.TPaveText(lowX, lowY+0.06, lowX+0.15, lowY+0.16, "NDC")
