@@ -5,7 +5,7 @@ from ctypes import c_double
 from DisplayManager import DisplayManager, add_Preliminary, add_Private, add_CMS, add_lumi, applyLegendSettings
 import numpy as np
 from officialStyle import officialStyle
-from ROOT import TDatime, TGraph, TFile, TH1F, TCanvas, TLegend, gROOT, gStyle, TH2F, kBlue, TGaxis, gPad, kRed, TLine, TPaveText, TLatex
+from ROOT import TDatime, TGraph, TFile, TH1F, TCanvas, TLegend, gROOT, gStyle, TH2F, TGaxis, gPad, TLine, TPaveText, TLatex, kBlue, kRed, kBlack
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
@@ -53,14 +53,11 @@ output='root/lumiprof.root'
 createLumiProfiles(output,synthetic=True)
 file_profile = TFile(output)
 
-################################################################################
-# Process ...
-
 profiles = [
 # FALLING
-#    file_profile.Get('falling_from_1p8e34_original'),
-#    file_profile.Get('falling_from_1p8e34'),
-#    file_profile.Get('falling_from_0p9e34'),
+    file_profile.Get('falling_from_1p8e34_original'),
+    file_profile.Get('falling_from_1p8e34'),
+    file_profile.Get('falling_from_0p9e34'),
 # ORIG
 #    file_profile.Get('levelled_at_2p0e34'),
 #    file_profile.Get('levelled_at_1p7e34'),
@@ -82,15 +79,18 @@ profiles = [
 #    file_profile.Get('levelled_at_0p2e34'),
 # HYBRID
     file_profile.Get('levelled_at_2p0e34'),
-#    file_profile.Get('levelled_at_1p7e34'),
-#    file_profile.Get('levelled_at_1p5e34'),
-#    file_profile.Get('levelled_at_1p3e34'),
-#    file_profile.Get('levelled_at_1p1e34'),
-#    file_profile.Get('levelled_at_0p9e34'),
-#    file_profile.Get('levelled_at_0p7e34'),
-#    file_profile.Get('levelled_at_0p4e34'),
-#    file_profile.Get('levelled_at_0p2e34'),
+    file_profile.Get('levelled_at_1p7e34'),
+    file_profile.Get('levelled_at_1p5e34'),
+    file_profile.Get('levelled_at_1p3e34'),
+    file_profile.Get('levelled_at_1p1e34'),
+    file_profile.Get('levelled_at_0p9e34'),
+    file_profile.Get('levelled_at_0p7e34'),
+    file_profile.Get('levelled_at_0p4e34'),
+    file_profile.Get('levelled_at_0p2e34'),
 ]
+
+################################################################################
+# Process ...
 
 for idx,profile in enumerate(profiles):
     name = profile.GetName()
@@ -101,21 +101,24 @@ for idx,profile in enumerate(profiles):
     gspare = TGraph()
     gspare.SetName('spare')
     gspare.SetTitle('L1 spare')
+    gspare.SetMarkerSize(0)
+    gspare.SetMarkerColor(kRed+1)
     gspare.SetLineStyle(1)
     gspare.SetLineColor(kRed+1)
-    gspare.SetMarkerSize(0)
-    gspare.SetLineWidth(2)
+    gspare.SetLineWidth(3)
     switches=[]
 
     graphs = []
-    for style,allocation in enumerate([5000]):#,10000,20000]):
+    for style,allocation in enumerate([5000,10000,20000][:]):
 
         graph = TGraph()
         graph.SetName('name'+'_allocation_' + str(allocation))
         graph.SetTitle(str(int(allocation/100.)/10.))
-        graph.SetLineStyle(style+1)
         graph.SetMarkerSize(0)
-        graph.SetLineWidth(3)
+        graph.SetMarkerColor(kBlue+2)
+        graph.SetLineStyle(style+1)
+        graph.SetLineColor(kBlue+2)
+        graph.SetLineWidth(4)
 
         ls_cntr = 0
         total_lumi = 0
@@ -239,26 +242,31 @@ for idx,profile in enumerate(profiles):
         # Margins
         gStyle.SetPadTopMargin(0.08)
         gStyle.SetPadLeftMargin(0.14)
-        if not only_profile:
-            gStyle.SetPadRightMargin(0.26)
+        if only_profile: gStyle.SetPadRightMargin(0.03)
+        else: gStyle.SetPadRightMargin(0.26) # Extra space for multiple axes
 
         # Create canvas
         canvas = TCanvas('canvas_' +  name)
         canvas.SetGridx()
         canvas.SetGridy()
+        gPad.SetTicks(1,0) # No tick marks on RHS
 
-        # Maximum for y-axis
-        ymax = 2.5 if only_profile else 13.0 #max([graph.GetPointY(graph.GetN()-1) for graph in graphs])*1.2
-
-        # Create fram for lumi profile
+        # Create frame for lumi profile
+        ymax = 2.5 # Maximum for y-axis (Linst)
         frame = TH2F('frame_'+name, 'frame_'+name, 
                      profile.GetN(), 0, total_time, # time axis
                      100, 0, ymax ) # counts axis
         frame.GetXaxis().SetTitle('Time [s]')
-        if only_profile : frame.GetYaxis().SetTitle('L_{inst} [10^{34} Hz/cm^{2}]')
-        else : frame.GetYaxis().SetTitle('Cumulative number of Kee candidates')
+        frame.GetYaxis().SetTitle('L_{inst} [10^{34} Hz/cm^{2}]')
         frame.SetTitleOffset(1.2)
         frame.Draw()
+
+        # Draw lumi profile
+        profile.SetLineColor(kBlack)
+        profile.SetLineWidth(3)
+        profile.SetMarkerSize(0)
+        profile.Draw('same')
+        canvas.Update()
 
         # Create legend
         t = TLatex()
@@ -271,41 +279,18 @@ for idx,profile in enumerate(profiles):
         applyLegendSettings(leg)
         leg.SetTextSize(0.035)
                 
-        # Draw graphs
+        # Draw graphs and right-hand axes
         if not only_profile:
-            for ii, graph in enumerate(graphs[::-1]): # in reverse order
-                graph.Draw('lsame')
-                leg.AddEntry(graph, graph.GetTitle(), 'l')
-        canvas.Update()
 
-        # Draw axis on right hand side
-        if not only_profile: 
-            right_max = 2.0 * ymax / 10.
-            scale = gPad.GetUymax()/right_max
-            #print("scale",gPad.GetUymax(),right_max,scale)
-            #print("g1",profile.GetPointY(1))
-            scaleGraph(profile,scale)
-            #print("g2",profile.GetPointY(1))
-            profile.Draw("same")
-            axis1 = TGaxis(gPad.GetUxmax(),
-                           gPad.GetUymin(),
-                           gPad.GetUxmax(),
-                           gPad.GetUymax(),
-                           0,right_max,510,"+L")
-            axis1.SetLineColor(kBlue+2)
-            axis1.SetLabelColor(kBlue+2)
-            axis1.SetTitleOffset(1.3)
-            axis1.SetTitle('L_{inst} [E34 Hz/cm^{2}]')
-            axis1.SetTitleColor(kBlue+2)
-            axis1.Draw()
-
-            right_max = l1_max * ymax / 10.
+            # Spare capacity
+            right_max = l1_max * ymax / 2.0
             scale = gPad.GetUymax()/right_max
             scaleGraph(gspare,scale)
             gspare.Draw("same")
-            axis2 = TGaxis(gPad.GetUxmax()+10000,
+            xshift = (gPad.GetUxmax()-gPad.GetUxmin())*0.25
+            axis2 = TGaxis(gPad.GetUxmax()+xshift,
                            gPad.GetUymin(),
-                           gPad.GetUxmax()+10000,
+                           gPad.GetUxmax()+xshift,
                            gPad.GetUymax(),
                            0,right_max,510,"+L")
             axis2.SetLineColor(kRed+1)
@@ -315,16 +300,27 @@ for idx,profile in enumerate(profiles):
             axis2.SetTitleColor(kRed+1)
             axis2.Draw()
 
-        # Draw legend
-        if not only_profile:
-            leg.Draw()
-        #canvas.RedrawAxis();
+            # Cumu candidates
+            right_max = 12.5
+            scale = gPad.GetUymax()/right_max
+            for ii, graph in enumerate(graphs[::-1]): # in reverse order
+                scaleGraph(graph,scale)
+                graph.Draw('lsame')
+                leg.AddEntry(graph, graph.GetTitle(), 'l')
+            axis1 = TGaxis(gPad.GetUxmax(),
+                           gPad.GetUymin(),
+                           gPad.GetUxmax(),
+                           gPad.GetUymax(),
+                           0,right_max,510,"+L")
+            axis1.SetLineColor(kBlue+2)
+            axis1.SetLabelColor(kBlue+2)
+            axis1.SetTitleOffset(1.2)
+            axis1.SetTitle('Cumulative number of Kee candidates')
+            axis1.SetTitleColor(kBlue+2)
+            axis1.Draw()
 
-        # Draw lumi profile
-        if not only_profile: profile.SetLineColor(kBlue+2)
-        profile.SetLineWidth(3)
-        profile.SetMarkerSize(0)
-        profile.Draw('same')
+        # Draw legend
+        if not only_profile: leg.Draw()
 
 #        lines = []
 #        texts = []
@@ -353,10 +349,11 @@ for idx,profile in enumerate(profiles):
         l2.Draw("same")
         l3=add_CMS(x=0.14)
         l3.Draw("same")
-        l4=add_lumi(total_lumi,x=0.8 if only_profile else 0.6)
+        l4=add_lumi(total_lumi,x=0.83 if only_profile else 0.6)
         l4.Draw("same")
 
         # Save canvas
+        #canvas.RedrawAxis()
         canvas.Update()
         filename = 'plots/'+name+'.pdf'
         if not only_profile: filename = filename.replace("plots/","plots/estimates_for_")
