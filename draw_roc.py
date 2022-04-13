@@ -146,7 +146,8 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
             ybin = effmap.GetYaxis().FindBin(hltpt)
             
 #            rate = ratemap.GetBinContent(xbin, ybin)
-#            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
+            print('file_rate:',file_rate)
+            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
             rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(npu)
             eff = effmap.GetBinContent(xbin, ybin)
 
@@ -187,6 +188,8 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 #        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
 #        l1_rate *= 0.001
 
+        print('l1_file_rate:',l1_file_rate)
+        print('getting:','L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate_file = l1_file_rate.Get('L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate = l1_rate_file.Eval(npu)
 
