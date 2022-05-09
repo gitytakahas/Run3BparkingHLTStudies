@@ -6,11 +6,19 @@ from DisplayManager import DisplayManager, add_Preliminary, add_Private, add_CMS
 import numpy as np
 from officialStyle import officialStyle
 from ROOT import TDatime, TGraph, TFile, TH1F, TCanvas, TLegend, gROOT, gStyle, TH2F, TGaxis, gPad, TLine, TPaveText, TLatex, kBlue, kRed, kBlack
+import json
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
 gStyle.SetOptTitle(0)
 gStyle.SetOptStat(0)
+
+from optparse import OptionParser, OptionValueError
+usage = "usage: python runTauDisplay_BsTauTau.py"
+parser = OptionParser(usage)
+parser.add_option('-c', '--corrected', action="store_true", default=False, dest='corrected', help="apply trigger rates correction factor")
+parser.add_option('-l', '--limit', action="store_true", default=False, dest='limit', help="limit HLT rate to 300 Hz")
+(options, args) = parser.parse_args()
 
 ################################################################################
 # input parameters
@@ -55,9 +63,9 @@ file_profile = TFile(output)
 
 profiles = [
 # FALLING
-    file_profile.Get('falling_from_1p8e34_original'),
-    file_profile.Get('falling_from_1p8e34'),
-    file_profile.Get('falling_from_0p9e34'),
+#    file_profile.Get('falling_from_1p8e34_original'),
+#    file_profile.Get('falling_from_1p8e34'),
+#    file_profile.Get('falling_from_0p9e34'),
 # ORIG
 #    file_profile.Get('levelled_at_2p0e34'),
 #    file_profile.Get('levelled_at_1p7e34'),
@@ -89,6 +97,15 @@ profiles = [
     file_profile.Get('levelled_at_0p2e34'),
 ]
 
+corrs_dict = {}
+if options.corrected:
+    for npu in [56, 48, 42, 36, 30, 25, 17]:
+        filename = path+'rates/corrections_' + str(npu) + '.json'
+        infile = open(filename,'r')
+        dct = json.load(infile)
+        corrs_dict[npu] = dct
+        infile.close()
+
 ################################################################################
 # Process ...
 
@@ -109,16 +126,19 @@ for idx,profile in enumerate(profiles):
     switches=[]
 
     graphs = []
-    for style,allocation in enumerate([5000,10000,20000][:]):
+    allocations = [0,5000,10000,20000] # [3600,6100,18900]
+    for style,allocation in enumerate(allocations):
 
         graph = TGraph()
         graph.SetName('name'+'_allocation_' + str(allocation))
         graph.SetTitle(str(int(allocation/100.)/10.))
         graph.SetMarkerSize(0)
         graph.SetMarkerColor(kBlue+2)
-        graph.SetLineStyle(style+1)
-        graph.SetLineColor(kBlue+2)
-        graph.SetLineWidth(4)
+        #graph.SetLineStyle(style+1)
+        graph.SetLineStyle(1)
+        graph.SetLineColor(kBlue+len(allocations)-style)
+        #graph.SetLineWidth(4)
+        graph.SetLineWidth(style+1)
 
         ls_cntr = 0
         total_lumi = 0
@@ -180,24 +200,76 @@ for idx,profile in enumerate(profiles):
                     l1_ee_rate = ee_rate
                     break
             if not flag_park: 
-                print('\t L1 not available')
+                #print('\t L1 not available')
                 continue
 
             #@@print('\t which_l1pt=', which_l1pt, 'with l1 ee rate = ', l1_ee_rate)
 
             # Determine HLT threshold ...
             hlt_file = TFile(path+'ee/roc_hlt_pu' + str(which_npu) + '.root')
-            roc = hlt_file.Get('inv_pt' + str(which_l1pt).replace('.','p'))
-            eff_hlt = -1
-            for ip in range(roc.GetN()):
-                if roc.GetPointX(ip) < max_bw_hlt[which_lumi]:
-                    eff_hlt = roc.GetPointY(ip)
-                    break
-            if eff_hlt==-1:
-                print('!!!!!! This cannot happen !!!!')
-            #@@print('\t parking: HLT eff. =', eff_hlt, 'max b/w=', max_bw_hlt[which_lumi])
+            hlt_roc = hlt_file.Get('inv_pt' + str(which_l1pt).replace('.','p'))
+            hlt_n = hlt_roc.GetN()
 
-            count = Linst * 1.e-5 * fB * Sigma_B * Br_kee * eff_hlt * time_duration
+#            hlt_eff = -1
+#            for ip in range(hlt_roc.GetN()):
+#                if hlt_roc.GetPointX(ip) < max_bw_hlt[which_lumi]:
+#                    hlt_eff = hlt_roc.GetPointY(ip)
+#                    break
+#            if hlt_eff==-1:
+#                print('!!!!!! This cannot happen !!!!')
+#            #@@print('\t parking: HLT eff. =', hlt_eff, 'max b/w=', max_bw_hlt[which_lumi])
+
+            # Extract corrections to rates from JSON
+            if options.limit:
+                hlt_max = 300. #max_bw_hlt[peak_lumi] # <-- Limit to 300 Hz for prompt reco
+                hlt_ok = True
+                hlt_rate = -1
+                hlt_eff = -1
+                which_hltpt = -1
+                for kk in range(hlt_n):
+                    ip = kk#hlt_n - kk - 1
+                    # print("test",kk,ip,hlt_pts[ip],hlt_roc.GetPointX(ip),hlt_max,hlt_roc.GetPointY(ip))
+                    hlt_rate = hlt_roc.GetPointX(ip)
+                    hlt_eff = hlt_roc.GetPointY(ip)
+                    which_hltpt = np.arange(4, 11, 0.5).tolist()[ip]
+                    if options.corrected:
+                        l1ptstr = str(which_l1pt)
+                        hltptstr = str(which_hltpt)
+                        if which_npu in corrs_dict.keys() and \
+                                l1ptstr in corrs_dict[which_npu].keys() and \
+                                hltptstr in corrs_dict[which_npu][l1ptstr].keys():
+                            corr = corrs_dict[which_npu][l1ptstr][hltptstr]
+                            if corr is not None: hlt_rate *= corr
+                            else: print("null value",which_npu,l1ptstr,hltptstr)
+                        else: print("unknown thresholds",which_npu,l1ptstr,hltptstr)
+                    if hlt_rate < hlt_max:
+                        break
+                if hlt_eff == -1: hlt_ok = False #print('!!!! This cannot happen !!!!')
+            else:
+                hlt_rate = -1
+                hlt_eff = -1
+                which_hltpt = hlt_threshold_dict.get(which_l1pt,4.0)
+                hltpt_list = np.arange(4, 11, 0.5).tolist()
+                index = hltpt_list.index(which_hltpt)
+                if index < hlt_roc.GetN():
+                    hlt_rate = hlt_roc.GetPointX(index)
+                    hlt_eff = hlt_roc.GetPointY(index)
+                    if options.corrected:
+                        l1ptstr = str(which_l1pt)
+                        hltptstr = str(which_hltpt)
+                        if which_npu in corrs_dict.keys() and \
+                                l1ptstr in corrs_dict[which_npu].keys() and \
+                                hltptstr in  corrs_dict[which_npu][l1ptstr].keys():
+                            corr = corrs_dict[which_npu][l1ptstr][hltptstr]
+                            if corr is not None: hlt_rate *= corr
+                            else: print("null value",which_npu,l1ptstr,hltptstr)
+                        else: print("unknown thresholds",which_npu,l1ptstr,hltptstr)
+                    else: print("cannot find hltpt")
+
+            #print("test",which_npu,which_l1pt,which_hltpt,hlt_eff,hlt_rate)
+            #quit()
+
+            count = Linst * 1.e-5 * fB * Sigma_B * Br_kee * hlt_eff * time_duration
             total_count += count
             graph.SetPoint(ls_cntr, profile.GetPointX(ii), total_count)
 
@@ -214,7 +286,7 @@ for idx,profile in enumerate(profiles):
                               "spare:",str("{:5.0f}".format(spare)),
                               "pT:",str("{:4.1f}".format(which_l1pt)),
                               "rate:",str("{:5.0f}".format(l1_ee_rate)),
-                              "Eff:",str("{:.6f}".format(eff_hlt)),
+                              "Eff:",str("{:.6f}".format(hlt_eff)),
                               #"dN:",str("{:.4f}".format(count)),
                               "N:",str("{:6.3f}".format(total_count))
                           ]))
@@ -272,7 +344,7 @@ for idx,profile in enumerate(profiles):
         t = TLatex()
         t.SetTextAlign(11)
         t.SetTextSize(0.035)
-        if not only_profile: t.DrawLatexNDC(0.45,0.87,"Allocation [kHz]")
+        if not only_profile: t.DrawLatexNDC(0.47,0.87,"Allocation [kHz]")
         upper = 0.86
         lower = upper-len(graphs)*0.04
         leg = TLegend(0.45,lower,0.7,upper)
@@ -369,3 +441,36 @@ for name,allocation,lumi,count in summary:
           ', per /fb:',"{:5.1f}".format(count/lumi),
           ', per 25/fb:',"{:5.1f}".format(integrated_lumi*count/lumi)
     )
+
+# Tables for estimates
+
+dct = {}
+for name,allocation,lumi,count in summary:
+    if name not in dct.keys() : dct[name] = {}
+    dct[name][allocation] = (lumi,count)
+
+for name,counts in dct.items():
+    print(name," ",end="")
+    print(counts[0][0]," ",end="")
+    for alloc in [0,5000,10000,20000]: print("{:5.1f}".format(counts[alloc][1])," ",end="")
+    print()
+print()
+
+nfills = {}
+nfills['levelled_at_2p0e34'] = 14
+nfills['levelled_at_1p7e34'] = 14
+nfills['levelled_at_1p5e34'] = 14
+nfills['levelled_at_1p3e34'] = 14
+nfills['levelled_at_1p1e34'] = 14
+nfills['levelled_at_0p9e34'] = 14
+nfills['levelled_at_0p7e34'] = 3
+nfills['levelled_at_0p4e34'] = 3
+nfills['levelled_at_0p2e34'] = 3
+
+for name,counts in dct.items():
+    print(name," ",end="")
+    print("{:0.2f}".format(counts[0][0])," ",end="")
+    print(nfills[name]," ",end="")
+    for alloc in [0,5000,10000,20000]: print("{:5.1f}".format(counts[alloc][1]*nfills[name])," ",end="")
+    print()
+print()
