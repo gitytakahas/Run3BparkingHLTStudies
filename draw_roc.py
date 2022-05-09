@@ -3,7 +3,8 @@ from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGra
 from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
-from common import path
+from common import path, hlt_threshold_dict
+import json
 
 #l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
 #hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
@@ -22,7 +23,9 @@ gStyle.SetOptStat(0)
 from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
-parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
+parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight', help="weight by analysis eff")
+parser.add_option('-r', '--rates', action="store_true", default=False, dest='rates', help="write trigger rates to JSON")
+parser.add_option('-c', '--corrected', action="store_true", default=False, dest='corrected', help="apply trigger rates correction factor")
 (options, args) = parser.parse_args()
 
 
@@ -133,6 +136,17 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
     ii = 0
     
+    rates_dict = {} # built separately for each npu (per method call)
+
+    corrs_dict = {}
+    if options.corrected:
+        filename = path+'rates/corrections_' + str(npu) + '.json'
+        infile = open(filename,'r')
+        corrs_dict = json.load(infile)
+        infile.close()
+        #print(corrs_dict)
+        #quit()
+
     for l1pt in l1_ptrange:
 
         rates = []
@@ -146,17 +160,33 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
             ybin = effmap.GetYaxis().FindBin(hltpt)
             
 #            rate = ratemap.GetBinContent(xbin, ybin)
-            print('file_rate:',file_rate)
-            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
+            #print('file_rate:',file_rate)
+            #print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
             rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(npu)
             eff = effmap.GetBinContent(xbin, ybin)
-
 #            print('rate, eff=', rate, eff)
+
+            # Record rates to write to JSON
+            if l1pt not in rates_dict.keys() : rates_dict[l1pt] = {}
+            rates_dict[l1pt][hltpt] = rate
+
+            # Extract corrections to rates from JSON
+            corr = 1.
+            if options.corrected:
+                l1ptstr = str(l1pt)
+                hltptstr = str(hltpt)
+                if l1ptstr in corrs_dict.keys() and hltptstr in corrs_dict[l1ptstr].keys():
+                    corr = corrs_dict[l1ptstr][hltptstr]
+                    if corr is not None: rate *= corr
+                    else: print("null value",l1ptstr,hltptstr)
+                else: print("unknown thresholds",l1ptstr,hltptstr)
+
             rates.append(rate)
             effs.append(eff)
 
             ##### 
-            if hltpt == l1pt - 1.:
+            #if hltpt == l1pt - 1.:
+            if hltpt == hlt_threshold_dict.get(l1pt,4.0):
 
 #                print('(l1, hlt) = ', l1pt, hltpt)
 
@@ -188,8 +218,8 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 #        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
 #        l1_rate *= 0.001
 
-        print('l1_file_rate:',l1_file_rate)
-        print('getting:','L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
+        #print('l1_file_rate:',l1_file_rate)
+        #print('getting:','L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate_file = l1_file_rate.Get('L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate = l1_rate_file.Eval(npu)
 
@@ -208,6 +238,12 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
     graphs_ref = []
 
+    if options.rates:
+        filename = path+'rates/rates_' + str(npu) + '.json'
+        outfile = open(filename,'w')
+        json_string = json.dump(rates_dict,outfile)
+        #outfile.write(json_string)
+        outfile.close()
 
     for iref, refname in enumerate(['Mu9_IP6']):#['Mu12_IP6', 'Mu9_IP6', 'Mu9_IP5', 'Mu8_IP5', 'Mu7_IP4']):
 
