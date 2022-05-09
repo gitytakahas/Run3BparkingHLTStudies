@@ -44,7 +44,6 @@ drdict = {
     14.0:0.4,
 }   
 
-################################################################################
 # Maximum HLT bandwidth from Sara's presentation
 # https://indico.cern.ch/event/1032638/contributions/4336416/
 max_bw_hlt = {
@@ -58,8 +57,17 @@ max_bw_hlt = {
     0.6:3791,
     #0.45:3791,0.3:3791,0.15:3791 # NEED TO UPDATE FOR LOWER LINST
     0.7:3791,0.47:3791,0.24:3791,0.06:3791 # NEED TO UPDATE FOR LOWER LINST
-
 }
+
+# Pairwise (L1,HLT) thresholds
+l1_threshold_list = np.arange(4, 11, 0.5).tolist()
+hlt_threshold_list = [4.0,4.0,4.0,4.0,4.0, # L1 4.0->6.0
+                      4.5,5.0,5.0,5.0,5.5,
+                      6.0,6.0,6.0,6.0,]
+hlt_threshold_dict = dict(zip(l1_threshold_list,hlt_threshold_list))
+
+# List of PU values
+npu_list = [56, 48, 42, 36, 30, 25, 17]
 
 ################################################################################
 # Extract Luminosity profiles from csv ... 
@@ -107,7 +115,7 @@ def extractLumiProfiles(original=False,max_duration=12*3600) :
 
     # Check if times are sorted
     if(times != sorted(times)):
-        print "Times not sorted!"
+        print("Times not sorted!")
         quit()
 
     # Return originals, before smoothing or truncating
