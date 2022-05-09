@@ -134,7 +134,7 @@ def print_table(debug,value,l1_max=95000.,dimuon=0.,allocation=5000.):
                             if corr is not None: hlt_rate *= corr
                             else: print("null value",npu,l1ptstr,hltptstr)
                         else: print("unknown thresholds",npu,l1ptstr,hltptstr)
-                    else: print("cannot find hltpt")
+                else: print("cannot find hltpt")
 
             #print("test",ii,jj,npu,l1_pt,hlt_pt,hlt_eff,hlt_rate)
 
