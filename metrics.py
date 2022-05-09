@@ -6,11 +6,19 @@ from officialStyle import officialStyle
 import numpy as np
 import os, sys, copy
 from common import *
+import json
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
 gStyle.SetOptTitle(0)
 gStyle.SetOptStat(0)
+
+from optparse import OptionParser, OptionValueError
+usage = "usage: python runTauDisplay_BsTauTau.py"
+parser = OptionParser(usage)
+parser.add_option('-c', '--corrected', action="store_true", default=False, dest='corrected', help="apply trigger rates correction factor")
+parser.add_option('-l', '--limit', action="store_true", default=False, dest='limit', help="limit HLT rate to 300 Hz")
+(options, args) = parser.parse_args()
 
 ################################################################################
 # input parameters
@@ -41,6 +49,15 @@ dimuon = 0.
 idx_2e34 = 0
 l1_rate_corr = l1_his.Eval(switch_lumi[idx_2e34][0]) - l1_max
 
+corrs_dict = {}
+if options.corrected:
+    for npu in [56, 48, 42, 36, 30, 25, 17]:
+        filename = path+'rates/corrections_' + str(npu) + '.json'
+        infile = open(filename,'r')
+        dct = json.load(infile)
+        corrs_dict[npu] = dct
+        infile.close()
+
 ################################################################################
 # Initialise
 # For each L1 pT threshold: 
@@ -58,30 +75,68 @@ def print_table(debug,value,l1_max=95000.,dimuon=0.,allocation=5000.):
                                     str(l1_pt).replace('.','p').replace('p0','')+
                                     'er1p22_dR_' + str(drdict[l1_pt]).replace('.','p'))
         if debug : print("L1 LOOP:",ii,l1_pt,histo_ee_rate) # DEBUG
-        if not debug and value is not "menu" : print("{:4.1f}".format(l1_pt),end="")
-        for jj,(lumi,npu,hlt_file) in enumerate(reversed(zip(switch_lumi,switch_npu,hlt_files))) :
+        if not debug and value != "menu" : print("{:4.1f}".format(l1_pt),end="")
+        for jj,(lumi,npu,hlt_file) in enumerate(reversed(list(zip(switch_lumi,switch_npu,hlt_files)))) :
             peak_lumi = lumi[0]
             l1_rate = l1_his.Eval(peak_lumi)
             spare = l1_max+l1_rate_corr - l1_rate
             #spare -= dimuon # Account for allocation to di-muon trigger
             ee_rate = histo_ee_rate.Eval(npu)*1000
             l1_ok = ee_rate < allocation or ee_rate < (spare+allocation)
+
             hlt_roc = hlt_file.Get('inv_pt' + str(l1_pt).replace('.','p'))
             hlt_n = hlt_roc.GetN()
-            hlt_max = max_bw_hlt[peak_lumi]
-            hlt_pt = -1
-            hlt_rate = -1
-            hlt_eff = -1
-            hlt_ok = True
-            for kk in range(hlt_n):
-                ip = kk#hlt_n - kk - 1
-                hlt_pt = hlt_pts[ip]
-                hlt_rate = hlt_roc.GetPointX(ip)
-                if hlt_rate < hlt_max:
+
+            # Extract corrections to rates from JSON
+            if options.limit:
+                hlt_max = 300. #max_bw_hlt[peak_lumi] # <-- Limit to 300 Hz for prompt reco
+                hlt_ok = True
+                hlt_rate = -1
+                hlt_eff = -1
+                hlt_pt = -1
+                for kk in range(hlt_n):
+                    ip = kk#hlt_n - kk - 1
+                    # print("test",kk,ip,hlt_pts[ip],hlt_roc.GetPointX(ip),hlt_max,hlt_roc.GetPointY(ip))
+                    hlt_rate = hlt_roc.GetPointX(ip)
                     hlt_eff = hlt_roc.GetPointY(ip)
-                    if debug : print("    HLT SCAN:",hlt_n,ip,hlt_pt,hlt_max,hlt_rate,hlt_eff)
-                    break
-            if hlt_eff == -1: hlt_ok = False #print('!!!! This cannot happen !!!!')
+                    hlt_pt = hlt_pts[ip]
+                    if options.corrected:
+                        l1ptstr = str(l1_pt)
+                        hltptstr = str(hlt_pt)
+                        if npu in corrs_dict.keys() and \
+                                l1ptstr in corrs_dict[npu].keys() and \
+                                hltptstr in corrs_dict[npu][l1ptstr].keys():
+                            corr = corrs_dict[npu][l1ptstr][hltptstr]
+                            if corr is not None: hlt_rate *= corr
+                            else: print("null value",npu,l1ptstr,hltptstr)
+                        else: print("unknown thresholds",npu,l1ptstr,hltptstr)
+                    if hlt_rate < hlt_max:
+                        if debug : print("    HLT SCAN:",hlt_n,ip,hlt_pt,hlt_max,hlt_rate,hlt_eff)
+                        break
+                if hlt_eff == -1: hlt_ok = False #print('!!!! This cannot happen !!!!')
+            else:
+                hlt_ok = True
+                hlt_rate = -1
+                hlt_eff = -1
+                hlt_pt = hlt_threshold_dict.get(l1_pt,4.0)
+                hltpt_list = np.arange(4, 11, 0.5).tolist()
+                index = hltpt_list.index(hlt_pt)
+                if index < hlt_roc.GetN():
+                    hlt_rate = hlt_roc.GetPointX(index)
+                    hlt_eff = hlt_roc.GetPointY(index)
+                    if options.corrected:
+                        l1ptstr = str(l1_pt)
+                        hltptstr = str(hlt_pt)
+                        if npu in corrs_dict.keys() and \
+                                l1ptstr in corrs_dict[npu].keys() and \
+                                hltptstr in  corrs_dict[npu][l1ptstr].keys():
+                            corr = corrs_dict[npu][l1ptstr][hltptstr]
+                            if corr is not None: hlt_rate *= corr
+                            else: print("null value",npu,l1ptstr,hltptstr)
+                        else: print("unknown thresholds",npu,l1ptstr,hltptstr)
+                    else: print("cannot find hltpt")
+
+            #print("test",ii,jj,npu,l1_pt,hlt_pt,hlt_eff,hlt_rate)
 
             if peak_lumi not in dct and l1_ok and hlt_ok : 
                 dct[peak_lumi] = (l1_pt,hlt_pt,ee_rate,hlt_rate,hlt_eff)
@@ -144,7 +199,7 @@ def print_table(debug,value,l1_max=95000.,dimuon=0.,allocation=5000.):
                "L1:","{:.1f}".format(spare),"{:.1f}".format(ee_rate),\
                "HLT:",hlt_n,hlt_pt,"{:.1f}".format(hlt_rate),"{:.2f}".format(hlt_eff*1.e4),\
                hlt_ok)#,hlt_roc, # DEBUG
-        if not debug and value is not "menu" : print("\\\\")
+        if not debug and value != "menu" : print("\\\\")
     if value == "menu" :
         Lint = integrated_lumi # defined above
         print("Lint:", Lint)
@@ -180,5 +235,6 @@ for value in ["ee_rate",
 ]: print_table(debug=False,value=value,l1_max=l1_max,dimuon=dimuon,allocation=5000.)
 
 for allocation in [0.,5000.,10000.,20000.]: 
+#for allocation in [0.,3600.,6100.,18900.]: 
     print("allocation:",allocation)
     print_table(debug=False,value="menu",l1_max=l1_max,dimuon=dimuon,allocation=allocation)
