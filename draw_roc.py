@@ -9,8 +9,8 @@ import json
 #l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
 #hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
 
-l1_ptrange = np.arange(4, 11, 0.5).tolist() 
-hlt_ptrange = np.arange(4, 11, 0.5).tolist() 
+l1_ptrange = np.arange(4, 10.99, 0.5).tolist() 
+hlt_ptrange = np.arange(4, 10.49, 0.5).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)
@@ -155,7 +155,7 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
         for hltpt in hlt_ptrange:
 
 
-#            print(l1pt, hltpt, type(l1pt), type(hltpt))
+            #print(l1pt, hltpt, type(l1pt), type(hltpt))
             xbin = effmap.GetXaxis().FindBin(l1pt)
             ybin = effmap.GetYaxis().FindBin(hltpt)
             
@@ -282,19 +282,19 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
     canvas.SetGridy()
 
     if not weight: 
-        frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 0.1, 100000)
-        frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
+        frame_roc = TH2F(name, name, 100, 3.e-6, 3.e-3, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('Trigger efficiency (L1 and HLT)')
     else : 
-        frame_roc = TH2F(name, name, 100, 0.0000003, 0.0003, 1000, 0.1, 100000)
-        frame_roc.GetXaxis().SetTitle('L1 x HLT x analysis eff.')
+        frame_roc = TH2F(name, name, 100, 3.e-7, 3.e-4, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('Signal A#times#varepsilon (L1, HLT, Reco, Analysis)')
 
 
     frame_roc.GetYaxis().SetTitle('HLT Trigger Rate (Hz)')
     frame_roc.Draw()
 
-    
-    leg = TLegend(0.18, 0.25,0.4,0.65)
-        
+    if envelope == True: leg = TLegend(0.18, 0.15,0.4,0.25)
+    else:                leg = TLegend(0.18, 0.15,0.4,0.65)
+
     applyLegendSettings(leg)
     leg.SetTextSize(0.03)
 
@@ -328,12 +328,13 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
             
 #            print(idx, graph.GetName())
 
-            graph.SetLineStyle(2)
-            graph.SetLineWidth(3)
-            graph.SetMarkerSize(2)
-            graph.SetMarkerStyle(21)
+            graph.SetLineStyle(0)
+            graph.SetLineWidth(0)
+            graph.SetMarkerColor(1)
+            graph.SetMarkerSize(1)
+            graph.SetMarkerStyle(20)
             graph.Draw('plsame')
-            leg.AddEntry(graph, 'L1 p_{T} = [5, 10, 1], HLT = L1 - 1 GeV', 'l')
+            leg.AddEntry(graph, 'Pairwise (L1,HLT) thresholds', 'l')
 
     leg.Draw()
 
