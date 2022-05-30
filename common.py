@@ -8,19 +8,26 @@ import os, copy
 from ROOT import TDatime, TFile, TGraph
 
 ################################################################################
-# Define path to input files
+# Define comon path to input files (i.e. either EOS or local)
 
 local=False
-path='./root/' if local else '/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/'
+common_path='./root/' if local else '/eos/cms/store/group/phys_bphys/bpark/RootFiles4Run3Parking/'
 
 ################################################################################
-# Input parameters
 
-Sigma_B = 4.6940e+11 # fb (http://www.lpthe.jussieu.fr/~cacciari/fonll/fonllform.html)
+# BBbar inclusive cross section 
+# from http://www.lpthe.jussieu.fr/~cacciari/fonll/fonllform.html
+Sigma_B = 4.6940e+11 # fb (femtobarn!!) 
+
+# Fragmentation fraction for B+-
 fB = 0.4
+
+# Branching fraction for "at least one rare B->Kee decay" per event (simplified to 2 * 4.4E-7)
 Br_kee = 2*4.5e-7
 
-drdict = {
+################################################################################
+# Dictionary that maps pT threshold to deltaR requirement at Level-1
+dr_dict = {
     4.0:0.9,
     4.5:0.9,
     5.0:0.9,
@@ -44,7 +51,8 @@ drdict = {
     14.0:0.4,
 }   
 
-# Maximum HLT bandwidth from Sara's presentation
+################################################################################
+# Maximum HLT bandwidth in 2018 vs Linst, from Sara's presentation:
 # https://indico.cern.ch/event/1032638/contributions/4336416/
 max_bw_hlt = {
     2.2:1515,
@@ -54,30 +62,35 @@ max_bw_hlt = {
     1.3:2163.5,
     1.1:2463,
     0.9:2929,
-    0.6:3791,
-    #0.45:3791,0.3:3791,0.15:3791 # NEED TO UPDATE FOR LOWER LINST
-    0.7:3791,0.47:3791,0.24:3791,0.06:3791 # NEED TO UPDATE FOR LOWER LINST
+    0.6:3791, # Default TSG column?
+    0.7:3791,0.47:3791,0.24:3791 # NEED TO UPDATE FOR LOWER LINST???
 }
 
-# Pairwise (L1,HLT) thresholds
+################################################################################
+# Pairwise (L1,HLT) thresholds to avoid "vertical regions" in ROCs
 l1_threshold_list = np.arange(4, 11, 0.5).tolist()
-hlt_threshold_list = [4.0,4.0,4.0,4.0,4.0, # L1 4.0->6.0
-                      4.5,5.0,5.0,5.0,5.5,
-                      6.0,6.0,6.0,6.0,]
+hlt_threshold_list = [4.0,4.0,4.0,4.0,4.0, # L1: 4.0->6.0
+                      4.5,5.0,5.0,5.0,5.5, # L1: 6.5->8.5
+                      6.0,6.5,6.5,6.5,     # L1: 9.0->10.5
+                      ]
 hlt_threshold_dict = dict(zip(l1_threshold_list,hlt_threshold_list))
 
-# List of PU values
+################################################################################
+# List of PU values ...
+# ... that map to Linst values: 2.0, 1.7, 1.5, 1.3, 1.1, 0.9, 0.6E34
 npu_list = [56, 48, 42, 36, 30, 25, 17]
 
 ################################################################################
-# Extract Luminosity profiles from csv ... 
+# Parse .csv file to extract example "luminosity profile" for 2018
 
 def extractLumiProfiles(original=False,max_duration=12*3600) :
 
-    # Parse csv file ...
+    # Golden JSON
     #https://cmsoms.cern.ch/cms/runs/report?cms_run=324980&cms_run_sequence=GLOBAL-RUN
     #"324980": [[39, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]],
     golden = [[53, 917], [919, 954], [956, 968], [1005, 1042], [1044, 2340]]
+
+    # Parse csv file 
     times = []
     lumis = []
     for line in open('LumiData/LumiData_2018_20200401.csv', 'r'):
@@ -102,12 +115,6 @@ def extractLumiProfiles(original=False,max_duration=12*3600) :
 
         Linst = float(line[5])*0.0001
         lumis.append(Linst)
-
-    ##########
-    # Data mangle
-
-    # Truncate beginning of run
-    #times = times[10:]
     
     # Start at zero
     min_time = min(times)
@@ -122,7 +129,7 @@ def extractLumiProfiles(original=False,max_duration=12*3600) :
     if original: return times,lumis
 
     # Smooth with running median
-    window = 11 # odd
+    window = 11 # has to be odd
     lumis = RunningMedian(lumis,window) # shortens by window-1
     for i in range((window-1)/2): # pad
         lumis.insert(0,lumis[0])
@@ -136,9 +143,11 @@ def extractLumiProfiles(original=False,max_duration=12*3600) :
     return times,lumis
 
 ################################################################################
-# Create luminosity profiles ... 
+# Creates various luminosity profiles
+# Can be based on a real but modified (e.g. smoothed) lumi profile (from above) ...
+# ... or a "synthetic" profile based on exponential parameterisation of real profile
 
-def createLumiProfiles(output='root/lumiprof.root',backup=False,synthetic=False) :
+def createLumiProfiles(output='root/lumiprof.root',backup=False,synthetic=True) :
 
     if os.path.exists(output): 
         print("Warning! File already exists!")
@@ -147,11 +156,11 @@ def createLumiProfiles(output='root/lumiprof.root',backup=False,synthetic=False)
             today = datetime.today().strftime('%Y%m%d_%H%M%S')
             os.rename(output,output.replace(".root","_{:s}.root".format(today)))
 
-    # Config
+    # Configure duration (fill, lumi-levelling)
     max_duration = 12*3600
     level_duration = 6*3600
 
-    # Produce graphs
+    # Produce output file
     file = TFile(output, 'recreate')
 
     # Falling from 1.8E34 (original, not truncated!)
