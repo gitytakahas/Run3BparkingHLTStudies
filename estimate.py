@@ -4,7 +4,7 @@ from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, 
 from officialStyle import officialStyle
 import numpy as np
 import os, sys, copy
-from common import path
+from common import common_path
 
 gROOT.SetBatch(True)
 officialStyle(gStyle)
@@ -165,8 +165,8 @@ graph_ll = file.Get('lumiprofile_ll')
 
 
 # This will be replaced once Sebastian derive realistic L1/HLT rates
-l1_file = TFile(path+'ee/l1_bandwidth.root')
-l1_file_official = TFile(path+'ee/l1_bandwidth_official.root')
+l1_file = TFile(common_path+'ee/l1_bandwidth.root')
+l1_file_official = TFile(common_path+'ee/l1_bandwidth_official.root')
 l1rate = l1_file.Get('otherrate')
 
 # PS column
@@ -260,7 +260,7 @@ for graph, name in zip([graph_norm, graph_ll], ['norm', 'll']):
 
             #@@print('L=', instL, ', which lumi=', which_lumi, '(npu = ', which_npu, '), l1 rate =', l1rate.Eval(which_lumi), ', l1 b/w =', parking_bw)
 
-            #hlt_file = TFile(path+'ee/roc_hlt_pu' + str(which_npu) + '.root')
+            #hlt_file = TFile(common_path+'ee/roc_hlt_pu' + str(which_npu) + '.root')
             hlt_file = TFile('root/roc_hlt_pu' + str(which_npu) + '.root')
 
 
