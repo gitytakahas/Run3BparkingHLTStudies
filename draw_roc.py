@@ -3,13 +3,14 @@ from ROOT import TFile, TH1F, TH2F, TTree, gROOT, gStyle, TCanvas, TLegend, TGra
 from officialStyle import officialStyle
 from DisplayManager import DisplayManager, add_Preliminary, add_CMS, add_label, applyLegendSettings, applyLegendSettings2
 import numpy as np
-from common import path
+from common import path, hlt_threshold_dict
+import json
 
 #l1_ptrange = np.arange(5, 10.9, 1.0).tolist() 
 #hlt_ptrange = np.arange(4, 10.9, 1.0).tolist() 
 
-l1_ptrange = np.arange(4, 11, 0.5).tolist() 
-hlt_ptrange = np.arange(4, 11, 0.5).tolist() 
+l1_ptrange = np.arange(4, 10.99, 0.5).tolist() 
+hlt_ptrange = np.arange(4, 10.49, 0.5).tolist() 
 
 print('l1', l1_ptrange)
 print('hlt', hlt_ptrange)
@@ -22,7 +23,9 @@ gStyle.SetOptStat(0)
 from optparse import OptionParser, OptionValueError
 usage = "usage: python runTauDisplay_BsTauTau.py"
 parser = OptionParser(usage)
-parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight')
+parser.add_option('-w', '--weight', action="store_true", default=False, dest='weight', help="weight by analysis eff")
+parser.add_option('-r', '--rates', action="store_true", default=False, dest='rates', help="write trigger rates to JSON")
+parser.add_option('-c', '--corrected', action="store_true", default=False, dest='corrected', help="apply trigger rates correction factor")
 (options, args) = parser.parse_args()
 
 
@@ -133,6 +136,17 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
     ii = 0
     
+    rates_dict = {} # built separately for each npu (per method call)
+
+    corrs_dict = {}
+    if options.corrected:
+        filename = path+'rates/corrections_' + str(npu) + '.json'
+        infile = open(filename,'r')
+        corrs_dict = json.load(infile)
+        infile.close()
+        #print(corrs_dict)
+        #quit()
+
     for l1pt in l1_ptrange:
 
         rates = []
@@ -141,21 +155,38 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
         for hltpt in hlt_ptrange:
 
 
-#            print(l1pt, hltpt, type(l1pt), type(hltpt))
+            #print(l1pt, hltpt, type(l1pt), type(hltpt))
             xbin = effmap.GetXaxis().FindBin(l1pt)
             ybin = effmap.GetYaxis().FindBin(hltpt)
             
 #            rate = ratemap.GetBinContent(xbin, ybin)
-#            print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
+            #print('file_rate:',file_rate)
+            #print('getting ... l1_' + str(l1pt).replace('.','p') + '_hlt' + str(hltpt).replace('.','p') + '_fit')
             rate = file_rate.Get('l1_' + str(l1pt).replace('.','p') + '_hlt_' + str(hltpt).replace('.','p') + '_fit').Eval(npu)
             eff = effmap.GetBinContent(xbin, ybin)
-
 #            print('rate, eff=', rate, eff)
+
+            # Record rates to write to JSON
+            if l1pt not in rates_dict.keys() : rates_dict[l1pt] = {}
+            rates_dict[l1pt][hltpt] = rate
+
+            # Extract corrections to rates from JSON
+            corr = 1.
+            if options.corrected:
+                l1ptstr = str(l1pt)
+                hltptstr = str(hltpt)
+                if l1ptstr in corrs_dict.keys() and hltptstr in corrs_dict[l1ptstr].keys():
+                    corr = corrs_dict[l1ptstr][hltptstr]
+                    if corr is not None: rate *= corr
+                    else: print("null value",l1ptstr,hltptstr)
+                else: print("unknown thresholds",l1ptstr,hltptstr)
+
             rates.append(rate)
             effs.append(eff)
 
             ##### 
-            if hltpt == l1pt - 1.:
+            #if hltpt == l1pt - 1.:
+            if hltpt == hlt_threshold_dict.get(l1pt,4.0):
 
 #                print('(l1, hlt) = ', l1pt, hltpt)
 
@@ -187,6 +218,8 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 #        l1_rate = l1_rate_file.Eval(npu*0.0357338 - 0.0011904)
 #        l1_rate *= 0.001
 
+        #print('l1_file_rate:',l1_file_rate)
+        #print('getting:','L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate_file = l1_file_rate.Get('L1_DoubleEG' + str(l1pt).replace('.','p').replace('p0','') + 'er1p22_dR_' + str(drdict[l1pt]).replace('.','p'))
         l1_rate = l1_rate_file.Eval(npu)
 
@@ -205,6 +238,12 @@ def createROCPdf(effmap, l1_file_rate, file_rate, file_ref, npu, name):
 
     graphs_ref = []
 
+    if options.rates:
+        filename = path+'rates/rates_' + str(npu) + '.json'
+        outfile = open(filename,'w')
+        json_string = json.dump(rates_dict,outfile)
+        #outfile.write(json_string)
+        outfile.close()
 
     for iref, refname in enumerate(['Mu9_IP6']):#['Mu12_IP6', 'Mu9_IP6', 'Mu9_IP5', 'Mu8_IP5', 'Mu7_IP4']):
 
@@ -243,19 +282,19 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
     canvas.SetGridy()
 
     if not weight: 
-        frame_roc = TH2F(name, name, 100, 0.000003, 0.01, 1000, 0.1, 100000)
-        frame_roc.GetXaxis().SetTitle('L1 x HLT Trigger efficiency')
+        frame_roc = TH2F(name, name, 100, 3.e-6, 3.e-3, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('Trigger efficiency (L1 and HLT)')
     else : 
-        frame_roc = TH2F(name, name, 100, 0.0000003, 0.0003, 1000, 0.1, 100000)
-        frame_roc.GetXaxis().SetTitle('L1 x HLT x analysis eff.')
+        frame_roc = TH2F(name, name, 100, 3.e-7, 3.e-4, 1000, 0.1, 100000)
+        frame_roc.GetXaxis().SetTitle('Signal A#times#varepsilon (L1, HLT, Reco, Analysis)')
 
 
     frame_roc.GetYaxis().SetTitle('HLT Trigger Rate (Hz)')
     frame_roc.Draw()
 
-    
-    leg = TLegend(0.18, 0.25,0.4,0.65)
-        
+    if envelope == True: leg = TLegend(0.18, 0.15,0.4,0.25)
+    else:                leg = TLegend(0.18, 0.15,0.4,0.65)
+
     applyLegendSettings(leg)
     leg.SetTextSize(0.03)
 
@@ -289,12 +328,13 @@ def makeCanvas(name, weight, envelope, graphs, graphs_ref, npu):
             
 #            print(idx, graph.GetName())
 
-            graph.SetLineStyle(2)
-            graph.SetLineWidth(3)
-            graph.SetMarkerSize(2)
-            graph.SetMarkerStyle(21)
+            graph.SetLineStyle(0)
+            graph.SetLineWidth(0)
+            graph.SetMarkerColor(1)
+            graph.SetMarkerSize(1)
+            graph.SetMarkerStyle(20)
             graph.Draw('plsame')
-            leg.AddEntry(graph, 'L1 p_{T} = [5, 10, 1], HLT = L1 - 1 GeV', 'l')
+            leg.AddEntry(graph, 'Pairwise (L1,HLT) thresholds', 'l')
 
     leg.Draw()
 
